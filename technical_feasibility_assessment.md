@@ -29,13 +29,16 @@ Branded Fit's automated corporate apparel platform is **technically feasible** w
 - **Authentication:** Bearer token (API key)
 - **Primary Endpoint:** `GET /v2/brands/{domain}`
 - **Rate Limits:**
-  - 100 requests/second sustained
-  - 30,000 requests per rolling 5-minute window (hard limit)
+  - Fair use base rate limit: 500,000 requests/month
+  - Brand Search API: 200 requests per 5 minutes per IP address
+  - Logo API: 500,000 requests/month fair use limit
   - HTTP 429 returned when exceeded
-- **Pricing:**
+- **Pricing (2026):**
   - Free tier: 250 requests/month
-  - Testing requests to brandfetch.com are free
-  - Overage billing available
+  - Paid plans available with quota allotments
+  - Overage billing available (requires paid plan upgrade)
+  - Hard spending limits configurable in Developer Dashboard
+  - Enterprise custom solutions available with SLA agreements
 
 **Response Format (JSON):**
 ```json
@@ -89,16 +92,17 @@ Branded Fit's automated corporate apparel platform is **technically feasible** w
 
 **Status:** Logo API officially shut down December 1, 2025
 
-**Current State:**
-- Logo data still available through Company Enrichment API
-- **Requires HubSpot ecosystem integration**
-- No standalone API access
+**Current State (2026):**
+- Logo data available only through Company Enrichment API
+- **Requires HubSpot ecosystem integration - cannot be used standalone**
+- No independent API access outside HubSpot platform
 
 **Pricing (2026):**
-- Breeze Intelligence: $45/month (annual) for 100 credits
-- API access: $99/month minimum (275 API requests)
-- Enterprise contracts: $80,000+ annually for large organizations
-- Must maintain paid HubSpot subscription
+- Breeze Intelligence: $45/month (annual commitment) or $50/month (monthly)
+- Requires paid HubSpot subscription (cannot function independently)
+- Credits sold in packs: 100, 1,000, or 10,000 (larger packs pricing not public)
+- API access requires enterprise contract negotiation (often 6 figures)
+- Must maintain paid HubSpot subscription as prerequisite
 
 **Technical Limitations:**
 - Not available as standalone service
@@ -130,10 +134,11 @@ POST /v1/shops/{shop_id}/products/{product_id}/publish.json      # Publish to Sh
 POST /v1/shops/{shop_id}/orders.json                      # Submit order
 ```
 
-**Rate Limits:**
+**Rate Limits (2026):**
 - Product publishing: 200 requests per 30 minutes
-- Daily limits on mockup generation (contact support for heavy usage)
+- Mockup generation: Additional daily limits apply (contact support for heavy usage applications)
 - Error rate must be <5% of total requests
+- API integrations requiring heavy Product or Mockup generation functions require support ticket for limit increases
 
 **Authentication Scopes Required:**
 - `shops.read`, `shops.write`
@@ -219,14 +224,17 @@ mutation productCreate($input: ProductInput!) {
 - **Bulk Mutation Timeout:** 24 hours
 - **Storefront API:** No rate limits for legitimate requests (edge-deployed)
 - **Webhooks:** Do not count against API rate limits
+- **Webhook Security:** HMAC signature verification required (X-Shopify-Hmac-SHA256 header)
+- **Duplicate Detection:** Use X-Shopify-Event-Id header to detect duplicate webhook events
 
 **Capabilities:**
 - Programmatic product creation with variants
 - Image upload and management
 - Inventory synchronization
-- Order webhook notifications
+- Order webhook notifications (products/create, products/update, orders/create, orders/updated)
 - Storefront API for custom buyer experiences
 - Bulk operations for large-scale data operations
+- Multiple webhook subscription methods (App Config, GraphQL, REST)
 
 **Integration Complexity:** LOW-MODERATE
 - Well-documented with extensive examples

@@ -1,1418 +1,1450 @@
 # Technical Feasibility Assessment: Branded Fit API Integrations
 
-**Document Date:** February 12, 2026
+**Date:** February 12, 2026
+**Prepared by:** Technical Lead
 **Version:** 1.0
-**Prepared By:** Technical Lead, Branded Fit
 
 ---
 
 ## Executive Summary
 
-This document provides a comprehensive technical feasibility analysis for the Branded Fit platform, which aims to automate the creation and sale of company-branded merchandise. The platform integrates three critical APIs: **Brandfetch** for logo retrieval, **Printify** for product mockup generation and print-on-demand fulfillment, and **Shopify** for storefront creation and management.
+This technical feasibility assessment evaluates the integration requirements for building Branded Fit, an automated platform that retrieves company logos, generates branded merchandise mockups, and enables seamless e-commerce fulfillment. The assessment covers three critical API integrations: **Brandfetch** (logo retrieval), **Printify** (print-on-demand fulfillment), and **Shopify** (e-commerce platform).
 
-### Key Findings
+**Key Findings:**
 
-**Overall Feasibility:** HIGH - All three API integrations are technically viable and well-documented, with established integration patterns and active developer communities.
-
-**Critical Considerations:**
-- **Clearbit Logo API sunsetted December 2025** - Brandfetch is the primary viable option
-- **Shopify removed static token generation** - OAuth 2.0 required for all new integrations as of January 2026
-- **Printify rate limits** - Product publishing limited to 200 requests per 30 minutes
-- **Total estimated development timeline:** 12-16 weeks for MVP
-
-**Recommended Technology Stack:**
-- Backend: Node.js/Express or Python/FastAPI
-- Database: PostgreSQL with Redis for caching
-- Queue System: Bull/BullMQ for asynchronous processing
-- Frontend: React/Next.js
-- Hosting: AWS/Vercel with CDN for static assets
-- Monitoring: DataDog or Sentry for error tracking
+- **Technical Viability:** All three API integrations are technically feasible with mature, well-documented APIs
+- **Development Timeline:** 12-16 weeks for MVP, 20-24 weeks for full production system
+- **Cost Structure:** Initial API costs of $158-229/month scaling to $545-1,545/month at 1,000 stores
+- **Primary Risk:** Clearbit Logo API has been shut down (December 2025), making Brandfetch the primary logo provider
+- **Recommendation:** Proceed with Brandfetch + Printify + Shopify stack with phased rollout approach
 
 ---
 
-## 1. Brandfetch API: Logo Retrieval & Brand Data
+## 1. API Assessment
 
-### 1.1 Overview
+### 1.1 Brandfetch API - Logo Retrieval
 
-Brandfetch provides comprehensive brand asset retrieval through two main APIs: the Logo API (free tier) and the Brand API (paid tier). As of 2026, Brandfetch is the primary viable option for programmatic logo retrieval, especially following Clearbit's Logo API sunset on December 1, 2025.
+**Overview:**
+Brandfetch is the leading brand data aggregator providing programmatic access to company logos, brand colors, fonts, and corporate information. With Clearbit Logo API's shutdown in December 2025, Brandfetch has emerged as the market-leading solution for logo retrieval.
 
-### 1.2 API Capabilities
+#### Capabilities
 
-**Logo API Features:**
-- Access to 60+ million brand logos
-- Multiple logo variants (icons, brand symbols, main logos)
-- Theme support (dark/light backgrounds)
-- Customizable sizing (adjustable height and width)
-- WebP format by default with other formats available
-- Smart fallback handling when logos unavailable
-- Search capabilities by stock ticker, ISIN, or crypto symbol
-- CDN-based delivery with transformation parameters
+- **Logo Retrieval:** Access to high-quality logos for millions of companies via domain, ISIN, or stock ticker lookup
+- **Multiple Formats:** Retrieve both dark and light logo versions, symbols, and icons
+- **Brand Data:** Extended brand information including colors, fonts, typography, and company metadata
+- **Coverage:** Global database with comprehensive brand coverage across industries
+- **Quality:** Logos provided in SVG and PNG formats with transparent backgrounds
 
-**Brand API Features (Paid Tier):**
-- Complete brand attribute access
-- Real-time data indexing
-- Company metadata enrichment
-- Color palette information
-- Typography details
-- Premium support
+#### Technical Specifications
 
-### 1.3 Technical Implementation
+- **API Type:** RESTful JSON API
+- **Authentication:** API key-based authentication via `x-api-key` header
+- **Base URL:** `https://api.brandfetch.io/v2/`
+- **Query Methods:**
+  - Domain: `brands/{domain}`
+  - Brand ID: `brands/{brandId}`
+  - ISIN/Ticker: `brands?isin={isin}` or `brands?ticker={ticker}`
 
-**Base URL:**
-```
-https://api.brandfetch.io/v2/
-```
+#### Rate Limits & Quotas
 
-**Authentication:**
-```javascript
-// Bearer Token Authentication
-const headers = {
-  'Authorization': `Bearer ${API_KEY}`,
-  'Content-Type': 'application/json'
-};
-```
+- **Free Tier:** 250 API calls/month (suitable for testing only)
+- **Growth Plan:** 5,000 requests/month at $129/month
+- **Monitoring:**
+  - Email notification at 80% usage threshold
+  - Real-time tracking via `x-api-key-quota` response header
+  - Usage monitoring via `x-api-key-approximate-usage` header
+- **Throttling:** HTTP 429 status code when quota exceeded
+- **No attribution required** in end-user applications
 
-**Sample Endpoint - Logo Retrieval:**
-```
-GET https://api.brandfetch.io/v2/brands/{domain}/logos
-```
+#### Pricing
 
-**Example Request:**
-```javascript
-const response = await fetch('https://api.brandfetch.io/v2/brands/nike.com/logos', {
-  method: 'GET',
-  headers: {
-    'Authorization': `Bearer ${BRANDFETCH_API_KEY}`
-  }
-});
+| Tier | Requests/Month | Cost | Cost per Request |
+|------|----------------|------|------------------|
+| Starter | 250 | Free | $0.00 |
+| Growth | 5,000 | $129/month | $0.026 |
+| Growth (Annual) | 5,000 | $103.20/month | $0.021 |
+| Enterprise | Custom | Contact Sales | Negotiable |
 
-const brandData = await response.json();
-```
+**Pricing Analysis:**
+For 100 logo retrievals/day (~3,000/month), the Growth plan at $129/month is required. Annual commitment provides 20% discount ($103.20/month). Enterprise plans available for higher volume requirements.
 
-**Response Structure:**
-```json
-{
-  "id": "nike.com",
-  "claimed": true,
-  "logos": [
-    {
-      "type": "logo",
-      "theme": "light",
-      "formats": [
-        {
-          "src": "https://cdn.brandfetch.io/...",
-          "format": "svg",
-          "height": 512,
-          "width": 512
-        }
-      ]
-    }
-  ]
-}
-```
+#### Data Quality & Reliability
 
-### 1.4 Pricing & Rate Limits
+- **Uptime:** 100% uptime guarantee (per vendor claims)
+- **Trusted By:** Canva, Typeform, Experian, and other major platforms
+- **Coverage:** Comprehensive global brand database
+- **Update Frequency:** Real-time updates as brands refresh their assets
+- **Fallback Strategy:** API returns 404 for unknown brands; requires alternative handling
 
-**Logo API (Free Tier):**
-- Up to 500,000 requests per month FREE
-- No attribution required
-- Suitable for MVP launch
+#### Integration Considerations
 
-**Brand API (Paid Tier):**
-- $99/month for 2,500 API calls
-- Real-time data indexing
-- All brand attributes
-- Premium support
-
-**Enterprise Plan:**
-- Unlimited access
-- Custom SLA
-- Flat-file transfer options
-- Custom pricing
-
-**Rate Limiting:**
-- Uses overage billing instead of hard limits
-- Requests over quota charged at overage rate
-- HTTP 429 returned when quota exhausted
-- Free testing with brandfetch.com domain (doesn't count toward quota)
-
-### 1.5 Technical Limitations & Risks
+**Strengths:**
+- Drop-in replacement for deprecated Clearbit Logo API
+- No attribution requirements
+- Multiple format support (SVG, PNG)
+- Dark/light logo variants
+- Fast response times (<500ms typical)
 
 **Limitations:**
-1. **Domain-based search only** - Requires exact domain name
-2. **Logo availability** - Not all companies have comprehensive logo libraries
-3. **Quality variance** - Logo resolution and format options vary by brand
-4. **Fallback strategy needed** - Smart fallback required for missing logos
+- Limited free tier (250 requests)
+- Coverage gaps for very small businesses or new companies
+- No free trial for Growth tier (only 250 free requests)
+- Rate limit enforcement could disrupt bulk operations
 
-**Risk Mitigation:**
-- Implement domain normalization (www. prefix handling)
-- Create fallback chain: Brandfetch → User upload → Default placeholder
-- Cache logo URLs in database to minimize API calls
-- Implement retry logic with exponential backoff
-
-### 1.6 Integration Architecture
-
-**Recommended Flow:**
-1. User enters company name/URL
-2. Backend normalizes domain (strip protocol, www)
-3. Check local cache/database first
-4. If not cached, call Brandfetch API
-5. Store logo URL and metadata in database
-6. Return logo options to frontend
-7. User selects preferred logo variant
-
-**Caching Strategy:**
-- Cache logo URLs for 30 days (logos rarely change)
-- Use Redis for fast retrieval
-- Implement cache warming for popular brands
+**Recommended Implementation:**
+- Implement aggressive logo caching (6-12 month TTL)
+- Build fallback system for missing logos (text-based, initials-based)
+- Queue-based retrieval for bulk operations
+- Monitor usage with alerting at 70% quota threshold
 
 ---
 
-## 2. Printify API: Product Creation & Fulfillment
+### 1.2 Clearbit API - Alternative Logo Provider
 
-### 2.1 Overview
+**Status Update (2026):**
+**Clearbit Logo API was officially shut down on December 1, 2025.** Clearbit has been rebranded as HubSpot's Breeze Intelligence and is no longer available as a standalone API service.
 
-Printify is a print-on-demand platform that provides a comprehensive REST API for programmatic product creation, mockup generation, and order fulfillment. The API enables automated placement of designs (logos) on 900+ product options from multiple print providers.
+#### Historical Context
 
-### 2.2 API Capabilities
+Prior to shutdown, Clearbit offered company enrichment data including logos, but the service has been deprecated and integrated into HubSpot's enterprise ecosystem.
 
-**Core Features:**
-- 900+ customizable product catalog
-- Automated mockup generation
-- Multi-provider print network
-- Order submission and tracking
-- Webhook notifications for order events
-- Product publishing to sales channels
-- Pricing and shipping calculations
-- Variant management (sizes, colors)
+#### Current Status
 
-**Product Creation Workflow:**
-1. Select product blueprint (t-shirt, mug, hoodie, etc.)
-2. Upload design/logo artwork
-3. Position artwork on print areas
-4. Configure variants (sizes, colors)
-5. Generate product mockups
-6. Set pricing markup
-7. Publish to sales channel
+- **Logo API:** Discontinued (December 1, 2025)
+- **Enrichment API:** Requires HubSpot enterprise contract (often 6 figures)
+- **Accessibility:** Cannot be used with non-HubSpot CRMs without complex third-party integrations
+- **Pricing:** Starts at $99/month for 275 API requests (enrichment only, no standalone logo access)
+- **Enterprise Pricing:** $12,000-$80,000+ annually depending on usage
 
-### 2.3 Technical Implementation
+#### Recommendation
 
-**Base URL:**
-```
-https://api.printify.com/v1/
-```
+**Do not use Clearbit for Branded Fit.** The logo API shutdown and enterprise-only pricing make this service unsuitable for our use case. Brandfetch is the recommended primary logo provider.
 
-**Authentication:**
-```javascript
-// API Token Authentication (Generate from Connections section)
-const headers = {
-  'Authorization': `Bearer ${PRINTIFY_API_TOKEN}`,
-  'Content-Type': 'application/json'
-};
-```
+---
 
-**Key Endpoints:**
+### 1.3 Printify API - Print-on-Demand Fulfillment
 
-**1. Catalog - List Products:**
-```
-GET /shops/{shop_id}/products.json
-```
+**Overview:**
+Printify is a leading print-on-demand platform offering programmatic product creation, mockup generation, and automated order fulfillment. The API enables developers to build custom storefronts while Printify handles production and shipping logistics.
 
-**2. Upload Image:**
-```
-POST /uploads/images.json
-Content-Type: application/json
+#### Capabilities
 
-{
-  "file_name": "company_logo.png",
-  "contents": "base64_encoded_image_data"
-}
-```
+- **Product Creation:** Programmatic creation of custom merchandise with uploaded designs
+- **Mockup Generation:** Automated product visualization with design placement
+- **Catalog Access:** Access to 1,000+ products across 90+ print providers
+- **Order Management:** Automated order submission and fulfillment tracking
+- **Provider Selection:** Choose from vetted print providers based on price, quality, and shipping time
+- **Variant Management:** Handle product sizes, colors, and configurations
+- **Webhook Events:** Real-time notifications for order status changes
 
-**3. Create Product:**
-```
-POST /shops/{shop_id}/products.json
+#### Technical Specifications
 
-{
-  "title": "Nike Corporate T-Shirt",
-  "description": "Premium branded t-shirt",
-  "blueprint_id": 3,
-  "print_provider_id": 99,
-  "variants": [
-    {
-      "id": 17390,
-      "price": 2500,
-      "is_enabled": true
-    }
-  ],
-  "print_areas": [
-    {
-      "variant_ids": [17390, 17392],
-      "placeholders": [
-        {
-          "position": "front",
-          "images": [
-            {
-              "id": "uploaded_image_id",
-              "x": 0.5,
-              "y": 0.5,
-              "scale": 1,
-              "angle": 0
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
+- **API Type:** RESTful JSON API
+- **Authentication:** OAuth 2.0 with API token-based requests
+- **Base URL:** `https://api.printify.com/v1/`
+- **API Documentation:** https://developers.printify.com/
 
-**4. Submit Order:**
-```
-POST /shops/{shop_id}/orders.json
+#### Key Endpoints
 
-{
-  "external_id": "order_12345",
-  "label": "Order #12345",
-  "line_items": [
-    {
-      "product_id": "printify_product_id",
-      "variant_id": 17390,
-      "quantity": 1
-    }
-  ],
-  "shipping_method": 1,
-  "send_shipping_notification": true,
-  "address_to": {
-    "first_name": "John",
-    "last_name": "Doe",
-    "email": "john@example.com",
-    "phone": "555-1234",
-    "country": "US",
-    "region": "CA",
-    "address1": "123 Main St",
-    "city": "San Francisco",
-    "zip": "94102"
-  }
-}
-```
+| Endpoint | Purpose | Method |
+|----------|---------|--------|
+| `/shops.json` | List connected shops | GET |
+| `/shops/{shop_id}/products.json` | Create/list products | POST/GET |
+| `/shops/{shop_id}/uploads/images.json` | Upload design images | POST |
+| `/catalog/blueprints.json` | List available products | GET |
+| `/catalog/print_providers.json` | List fulfillment providers | GET |
+| `/shops/{shop_id}/orders.json` | Submit orders | POST |
+| `/shops/{shop_id}/orders/{order_id}.json` | Track order status | GET |
 
-### 2.4 Webhook Integration
+#### Rate Limits
 
-**Supported Events:**
+- **Product Publishing:** 200 requests per 30 minutes
+- **Order Creation:** No rate limits (order-driven product creation excluded from publishing limit)
+- **Mockup Generation:** Daily limits apply; high-volume users must contact support
+- **General API Calls:** No published hard limits, but aggressive usage may trigger throttling
 
-**Product Events:**
-- `product:deleted`
-- `product:publish:started`
-- `product:publish:succeeded`
-- `product:publish:failed`
+#### Webhook Events
 
-**Order Events:**
-- `order:created`
-- `order:updated`
-- `order:sent-to-production`
-- `order:shipment:created`
-- `order:shipment:delivered`
+Printify provides real-time event notifications:
 
-**Webhook Configuration:**
-```
-POST /shops/{shop_id}/webhooks.json
+- `shop:disconnected` - Shop authorization revoked
+- `product:deleted` - Product removed from catalog
+- `product:publish:started` - Product publishing initiated
+- `order:created` - New order placed
+- `order:updated` - Order status changed
+- `order:sent-to-production` - Order sent to print provider
 
-{
-  "topic": "order:created",
-  "url": "https://brandedfit.com/api/webhooks/printify"
-}
-```
+#### Pricing Structure
 
-**Sample Webhook Payload:**
-```json
-{
-  "id": "webhook_id",
-  "type": "order:created",
-  "created_at": "2026-02-12T10:30:00.000Z",
-  "resource": {
-    "id": "order_id",
-    "status": "pending",
-    "shop_order_id": "12345"
-  }
-}
-```
+**Platform Access:**
+- **Free Plan:** $0/month, standard product pricing
+- **Premium Plan:** $29/month, 20% discount on all products
 
-### 2.5 Pricing & Rate Limits
+**Product Pricing:**
+- Variable by product type and print provider
+- Typical markup: 30-60% above base cost
+- No minimum order quantities
+- No upfront inventory costs
 
-**API Access:**
-- FREE with Printify account
-- No monthly API fees
-- Pay only for fulfilled products (cost + markup)
+**Cost Example (T-Shirt):**
+- Base cost: $8-12 (varies by provider)
+- Shipping: $3-7 (domestic US)
+- Printify margin built into base cost
+- Your margin: Set custom retail pricing
 
-**Rate Limits:**
-- Product publishing: 200 requests per 30 minutes
-- General endpoints: Not explicitly documented (reasonable use)
-- Heavy usage requires support ticket for increased limits
+**Monthly Cost Scenarios:**
 
-**Product Costs:**
-- Varies by product type and print provider
-- Base costs: $8-$15 for t-shirts, $10-$18 for hoodies
-- Shipping calculated per order
-- No minimum order quantity
+| Store Volume | Printify Plan | Monthly Subscription | Product Discounts | Total Monthly Cost |
+|--------------|---------------|---------------------|-------------------|-------------------|
+| 0-50 orders | Free | $0 | 0% | $0 |
+| 50-200 orders | Premium | $29 | 20% off products | $29 |
+| 200+ orders | Premium | $29 | 20% off products | $29 |
 
-### 2.6 Technical Limitations & Risks
+**Key Insight:** Printify charges per-order (built into product cost), not per API request. Monthly subscription cost is minimal ($0-29/month) regardless of store count.
 
-**Limitations:**
-1. **Product publishing rate limit** - 200 requests/30 min restricts bulk operations
-2. **Print area complexity** - Positioning requires trial and error
-3. **Provider variability** - Quality and shipping times vary by provider
-4. **Mockup generation delays** - Can take several seconds per product
-5. **Image requirements** - Specific DPI and size requirements per product
-
-**Risk Mitigation:**
-- Implement queue system for product creation (Bull/BullMQ)
-- Pre-calculate optimal logo positioning for common products
-- Select 2-3 reliable print providers for consistency
-- Implement async mockup generation with progress notifications
-- Validate logo resolution before product creation
-
-### 2.7 Integration Architecture
+#### Integration Workflow
 
 **Product Creation Flow:**
-1. User selects company and products
-2. Backend retrieves logo from Brandfetch
-3. Upload logo to Printify as image
-4. Queue product creation jobs (respect rate limits)
-5. Worker processes queue, creates products
-6. Store Printify product IDs in database
-7. Generate mockups asynchronously
-8. Notify user when products ready
+1. Upload logo/design image via `/uploads/images.json`
+2. Select product blueprint (e.g., t-shirt, mug, hat)
+3. Create product with design placement via `/products.json`
+4. Generate mockup images automatically
+5. Publish product to connected Shopify store
 
 **Order Fulfillment Flow:**
-1. Customer places order on Shopify
-2. Shopify webhook triggers backend
-3. Backend creates Printify order
-4. Printify routes to print provider
-5. Webhook updates order status
-6. Tracking info synced to Shopify
-7. Customer receives shipping notification
+1. Customer places order on Shopify store
+2. Shopify webhook triggers order notification
+3. Backend submits order to Printify API
+4. Printify routes order to selected print provider
+5. Provider prints, packs, and ships directly to customer
+6. Webhook updates notify of status changes (production, shipped, delivered)
 
----
+#### Data Quality & Reliability
 
-## 3. Shopify API: Storefront Creation & Management
+- **Provider Network:** 90+ vetted print providers globally
+- **Product Quality:** Varies by provider; reviews and ratings available
+- **Shipping Times:** 2-7 business days (domestic US), 7-21 days (international)
+- **Order Accuracy:** Provider-dependent; typically 98%+ accuracy
+- **Uptime:** Production-grade reliability with redundant provider network
 
-### 3.1 Overview
+#### Integration Considerations
 
-Shopify provides comprehensive APIs for building custom storefronts and managing e-commerce operations. As of January 2026, Shopify requires OAuth 2.0 authentication for all new integrations, having removed the ability to generate static API tokens from the admin interface.
-
-### 3.2 API Capabilities
-
-**Admin API Features:**
-- Store setup and configuration
-- Product CRUD operations
-- Order management
-- Customer management
-- Inventory tracking
-- Theme customization
-- Shipping and fulfillment
-- Payment processing
-- Analytics and reporting
-
-**API Versions:**
-- **REST Admin API** - Traditional REST endpoints
-- **GraphQL Admin API** - Modern GraphQL interface (recommended)
-- **Storefront API** - Customer-facing read operations
-- **2026-01 API version** - Latest stable version as of February 2026
-
-### 3.3 Technical Implementation
-
-**Authentication Flow (OAuth 2.0):**
-
-**Three OAuth Grant Types:**
-
-1. **Authorization Code Grant** - For apps accessing stores you don't own (recommended)
-2. **Token Exchange Grant** - For embedded apps using App Bridge
-3. **Client Credentials Grant** - For direct API access to your own store
-
-**Authorization Code Grant Flow:**
-```javascript
-// Step 1: Redirect user to Shopify
-const authUrl = `https://${shop}/admin/oauth/authorize?` +
-  `client_id=${CLIENT_ID}&` +
-  `scope=${SCOPES}&` +
-  `redirect_uri=${REDIRECT_URI}&` +
-  `state=${STATE}&` +
-  `grant_options[]=${GRANT_OPTIONS}`;
-
-// Step 2: Handle callback
-app.get('/auth/callback', async (req, res) => {
-  const { code, shop, state } = req.query;
-
-  // Step 3: Exchange code for access token
-  const tokenResponse = await fetch(`https://${shop}/admin/oauth/access_token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
-      code
-    })
-  });
-
-  const { access_token } = await tokenResponse.json();
-  // Store access_token securely
-});
-```
-
-**Access Scopes (Required Permissions):**
-```javascript
-const SCOPES = [
-  'read_products',
-  'write_products',
-  'read_orders',
-  'write_orders',
-  'read_customers',
-  'write_customers',
-  'read_inventory',
-  'write_inventory'
-].join(',');
-```
-
-**GraphQL API (Recommended for 2026):**
-
-**Base URL:**
-```
-POST https://{shop}.myshopify.com/admin/api/2026-01/graphql.json
-```
-
-**Authentication:**
-```javascript
-const headers = {
-  'X-Shopify-Access-Token': ACCESS_TOKEN,
-  'Content-Type': 'application/json'
-};
-```
-
-**Example: Create Product (GraphQL):**
-```graphql
-mutation CreateProduct($input: ProductInput!) {
-  productCreate(input: $input) {
-    product {
-      id
-      title
-      handle
-      status
-      variants(first: 10) {
-        edges {
-          node {
-            id
-            price
-            sku
-          }
-        }
-      }
-    }
-    userErrors {
-      field
-      message
-    }
-  }
-}
-```
-
-**Variables:**
-```json
-{
-  "input": {
-    "title": "Nike Corporate T-Shirt",
-    "descriptionHtml": "<p>Premium branded merchandise</p>",
-    "vendor": "Branded Fit",
-    "productType": "Apparel",
-    "tags": ["branded", "corporate", "nike"],
-    "variants": [
-      {
-        "price": "29.99",
-        "sku": "NIKE-TSHIRT-001",
-        "inventoryPolicy": "DENY"
-      }
-    ]
-  }
-}
-```
-
-**REST API Alternative:**
-
-**Create Product (REST):**
-```
-POST https://{shop}.myshopify.com/admin/api/2026-01/products.json
-
-{
-  "product": {
-    "title": "Nike Corporate T-Shirt",
-    "body_html": "<p>Premium branded merchandise</p>",
-    "vendor": "Branded Fit",
-    "product_type": "Apparel",
-    "variants": [
-      {
-        "price": "29.99",
-        "sku": "NIKE-TSHIRT-001"
-      }
-    ],
-    "images": [
-      {
-        "src": "https://cdn.printify.com/mockup.png"
-      }
-    ]
-  }
-}
-```
-
-### 3.4 Webhook Integration
-
-**Key Webhooks for Branded Fit:**
-
-```javascript
-// Register webhook
-POST https://{shop}.myshopify.com/admin/api/2026-01/webhooks.json
-
-{
-  "webhook": {
-    "topic": "orders/create",
-    "address": "https://brandedfit.com/api/webhooks/shopify",
-    "format": "json"
-  }
-}
-```
-
-**Critical Webhook Topics:**
-- `orders/create` - New order placed
-- `orders/updated` - Order status changed
-- `orders/cancelled` - Order cancelled
-- `orders/fulfilled` - Order fulfilled
-- `products/create` - Product created
-- `products/update` - Product updated
-- `app/scopes_update` - OAuth scopes changed
-
-**Webhook Payload Example:**
-```json
-{
-  "id": 1234567890,
-  "email": "customer@example.com",
-  "created_at": "2026-02-12T10:30:00-05:00",
-  "total_price": "29.99",
-  "line_items": [
-    {
-      "id": 987654321,
-      "title": "Nike Corporate T-Shirt",
-      "quantity": 1,
-      "price": "29.99",
-      "sku": "NIKE-TSHIRT-001"
-    }
-  ],
-  "shipping_address": {
-    "first_name": "John",
-    "last_name": "Doe",
-    "address1": "123 Main St",
-    "city": "San Francisco",
-    "province": "CA",
-    "country": "US",
-    "zip": "94102"
-  }
-}
-```
-
-### 3.5 Rate Limits
-
-**API Rate Limits:**
-- **Public apps:** 2 requests per second
-- **Private apps:** 4 requests per second
-- **Burst allowance:** Short bursts allowed, sustained rate enforced
-
-**Rate Limit Headers:**
-```
-X-Shopify-Shop-Api-Call-Limit: 32/40
-```
-
-**Best Practices:**
-- Implement exponential backoff
-- Use GraphQL to reduce request count (batch queries)
-- Cache frequently accessed data
-- Monitor rate limit headers
-- Implement request queuing
-
-### 3.6 Pricing
-
-**API Access:**
-- FREE with any Shopify plan
-- No additional fees for API usage
-- Transaction fees apply to orders (0.5-2% depending on plan)
-
-**Shopify Plan Requirements:**
-- Basic: $39/month - Suitable for MVP
-- Shopify: $105/month - Recommended for growth
-- Advanced: $399/month - Enterprise features
-
-**Transaction Fees:**
-- Using Shopify Payments: 0% API transaction fee
-- Using external payment gateway: 0.5-2% per transaction
-
-### 3.7 Technical Limitations & Risks
+**Strengths:**
+- No inventory management required
+- Automated fulfillment and shipping
+- Wide product catalog (1,000+ items)
+- Premium plan discount (20%) improves margins
+- Webhook-driven order automation
+- No per-request API costs
 
 **Limitations:**
-1. **OAuth complexity** - More complex than static tokens
-2. **Rate limits** - 2-4 requests/second restricts bulk operations
-3. **Multi-store management** - Each store requires separate OAuth flow
-4. **Webhook delivery not guaranteed** - Must implement idempotency
-5. **API versioning** - Quarterly updates, deprecation cycles
+- Product publishing rate limits (200/30 min)
+- Mockup generation daily limits for high volume
+- Product quality varies by print provider
+- Longer shipping times than Amazon Prime expectations
+- Cannot customize packaging/branding (white-label limitations)
+- No bulk pricing discounts (each order priced individually)
 
-**Risk Mitigation:**
-- Use established OAuth libraries (e.g., @shopify/shopify-api)
-- Implement request queuing with Bull/BullMQ
-- Store webhook events in database for replay
-- Implement webhook signature verification
-- Monitor API version deprecation notices
-- Use GraphQL for efficient data fetching
-
-### 3.8 Integration Architecture
-
-**Store Creation Flow:**
-1. User signs up for Branded Fit
-2. OAuth flow initiated to connect Shopify
-3. User authorizes app with required scopes
-4. Backend stores access token securely
-5. Backend creates store configuration
-6. Theme installed/configured (if applicable)
-7. Store ready for product sync
-
-**Product Sync Flow:**
-1. Products created in Printify
-2. Mockup images generated
-3. Backend creates products in Shopify via GraphQL
-4. Product IDs stored in database
-5. Inventory linked to Printify fulfillment
-6. Products live on Shopify storefront
-
-**Order Processing Flow:**
-1. Customer orders on Shopify
-2. Webhook received by backend
-3. Order validated and processed
-4. Order submitted to Printify
-5. Printify fulfills and ships
-6. Tracking info synced to Shopify
-7. Order marked as fulfilled
+**Recommended Implementation:**
+- Use Premium plan ($29/month) for 20% product discount
+- Queue product publishing to stay under 200/30min limit
+- Implement webhook handlers for order status tracking
+- Select 2-3 preferred print providers for consistency
+- Cache product mockups to reduce generation requests
+- Build quality monitoring for provider performance
+- Set realistic shipping expectations in store
 
 ---
 
-## 4. Integration Architecture & Data Flow
+### 1.4 Shopify API - E-Commerce Platform
 
-### 4.1 System Architecture
+**Overview:**
+Shopify provides a comprehensive e-commerce platform with robust APIs for store creation, product management, and order processing. The Shopify API enables programmatic store management, making it ideal for multi-tenant SaaS applications like Branded Fit.
 
-**High-Level Architecture:**
+#### Capabilities
+
+- **Store Management:** Create and manage Shopify stores programmatically
+- **Product Management:** Create, update, publish, and delete products
+- **Inventory Management:** Track stock levels and variants
+- **Order Processing:** Access order data and fulfillment status
+- **Customer Management:** Manage customer accounts and data
+- **Sales Channels:** Publish products to multiple channels (online store, social media, marketplaces)
+- **Payment Processing:** Built-in payment gateway (Shopify Payments) with multi-provider support
+- **Theme Customization:** Programmatic theme and storefront customization
+- **Analytics & Reporting:** Sales, traffic, and conversion data via API
+
+#### Technical Specifications
+
+- **API Types:** REST Admin API and GraphQL Admin API
+- **Current Version:** 2026-01 (versioned APIs with deprecation notices)
+- **Authentication:** OAuth 2.0 for public apps, API tokens for custom apps
+- **Base URLs:**
+  - REST: `https://{shop}.myshopify.com/admin/api/2026-01/`
+  - GraphQL: `https://{shop}.myshopify.com/admin/api/2026-01/graphql.json`
+
+#### Key API Endpoints (REST)
+
+| Resource | Purpose | Key Operations |
+|----------|---------|----------------|
+| `/products.json` | Product management | Create, read, update, delete products |
+| `/products/{id}/variants.json` | Product variants | Manage sizes, colors, options |
+| `/orders.json` | Order management | Retrieve and update orders |
+| `/customers.json` | Customer data | Manage customer accounts |
+| `/shop.json` | Store information | Get shop details |
+| `/webhooks.json` | Event subscriptions | Subscribe to store events |
+
+#### GraphQL API Capabilities
+
+- **productCreate:** Create products with rich attributes
+- **productUpdate:** Modify existing products
+- **publishablePublish:** Publish products to sales channels
+- **Catalogs API:** Manage pricing and product availability by customer context
+- **Bulk Operations:** Handle large data operations without rate limit constraints
+
+#### Rate Limits
+
+**REST Admin API:**
+- **Standard Stores:** 2 requests/second (bucket-based throttling)
+- **Shopify Plus:** 20 requests/second (10x higher limit)
+- **Algorithm:** Leaky bucket with 40-request burst capacity
+- **Throttling Response:** HTTP 429 with `Retry-After` header (seconds)
+- **Special Limits:** Product variant creation capped at 1,000/day for stores with 50,000+ variants
+
+**GraphQL Admin API:**
+- **Cost-Based System:** Each query assigned point cost based on complexity
+- **Standard Rate:** 1,000 cost points per second (refills 50 points/second)
+- **Shopify Plus:** 2,000 cost points per second (refills 100 points/second)
+- **Bulk Operations:** No rate limits for bulk queries (designed for large datasets)
+- **Throttling Response:** Cost exceeded returns error with retry guidance
+
+**Storefront API:**
+- **No hard rate limits** on request count
+- **Checkout Throttling:** Limited checkouts/minute to prevent abuse
+- **Throttle Response:** HTTP 200 with "Throttled" error message
+
+#### Rate Limit Best Practices
+
+1. **Implement Request Queuing:** Use queue system with exponential backoff
+2. **Cache Frequently Accessed Data:** Reduce redundant API calls
+3. **Use GraphQL Bulk Operations:** For large data migrations/updates
+4. **Monitor Rate Limit Headers:** `X-Shopify-Shop-Api-Call-Limit` header shows usage
+5. **Optimize Query Complexity:** Request only necessary data fields
+6. **Distribute Requests:** Smooth traffic distribution over time
+
+#### Pricing
+
+**API Access:**
+- **Free for developers** - No direct API access fees
+- Store owners pay Shopify subscription fees (see below)
+
+**Shopify Subscription Plans (2026):**
+
+| Plan | Monthly Cost | Features | Target Market |
+|------|--------------|----------|---------------|
+| Starter | $5/month | Link in bio, sell on social | Social sellers |
+| Basic | $39/month | Full online store, 2 staff accounts | New stores |
+| Shopify | $105/month | 5 staff accounts, better analytics | Growing stores |
+| Advanced | $399/month | 15 staff accounts, advanced reports | Established stores |
+| Plus | $2,000+/month | Custom limits, API rate limit boost | Enterprise |
+
+**Transaction Fees:**
+- **Shopify Payments:** 0% transaction fees
+- **Third-Party Gateways:** 0.5-2% per transaction (varies by plan)
+- **Credit Card Rates:** 2.4-2.9% + 30¢ (varies by plan and location)
+
+**Key Consideration for Branded Fit:**
+Each merchant using Branded Fit needs their own Shopify subscription ($39-105/month minimum). This is a **customer cost**, not a platform cost. Our integration facilitates store setup but doesn't bear subscription fees.
+
+#### Webhook Events
+
+Critical webhooks for Branded Fit integration:
+
+- `orders/create` - New order placed
+- `orders/updated` - Order status changed
+- `orders/paid` - Payment confirmed
+- `products/create` - Product added
+- `products/update` - Product modified
+- `products/delete` - Product removed
+- `shop/update` - Store settings changed
+- `app/uninstalled` - App removed from store
+
+#### Integration Workflow
+
+**Store Setup Flow:**
+1. Merchant authorizes Branded Fit app via OAuth
+2. App receives access token for store API access
+3. Create products via `productCreate` GraphQL mutation or REST endpoint
+4. Publish products to sales channels via `publishablePublish`
+5. Subscribe to order webhooks for fulfillment automation
+
+**Order Processing Flow:**
+1. Customer purchases branded merchandise on Shopify store
+2. Shopify webhook notifies Branded Fit backend
+3. Backend extracts order details and forwards to Printify
+4. Printify fulfills order and provides tracking
+5. Backend updates Shopify order with tracking information
+6. Shopify notifies customer of shipment
+
+#### Data Quality & Reliability
+
+- **Platform Stability:** Industry-leading uptime (99.98%+ SLA for Plus)
+- **API Versioning:** Stable API contracts with 12-month deprecation notice
+- **Documentation:** Comprehensive docs at shopify.dev
+- **Developer Support:** Active community, Stack Overflow, and official support
+- **Security:** PCI DSS compliant, SOC 2 certified
+
+#### Integration Considerations
+
+**Strengths:**
+- Mature, well-documented API ecosystem
+- No API access fees (free for developers)
+- OAuth-based multi-tenant support
+- Comprehensive webhook system
+- Built-in payment processing and cart
+- Mobile-optimized storefronts
+- Extensive app marketplace for additional features
+- Shopify Plus rate limit boost (20 req/sec) for scale
+
+**Limitations:**
+- Rate limits require careful queue management (2 req/sec standard)
+- Each merchant needs paid Shopify subscription ($39+/month)
+- API versioning requires maintenance (annual updates)
+- GraphQL learning curve for complex operations
+- Variant limits (1,000 new variants/day for large catalogs)
+- Transaction fees if not using Shopify Payments
+
+**Recommended Implementation:**
+- Use GraphQL API for product creation (more efficient than REST)
+- Implement robust webhook handlers with retry logic
+- Build request queue with rate limit awareness
+- Cache shop data to minimize API calls
+- Use bulk operations for initial store setup
+- Monitor API version deprecation notices
+- Implement exponential backoff for 429 responses
+- Consider Shopify Plus for stores expecting high volume (>$100k/year sales)
+
+---
+
+## 2. Technical Architecture
+
+### 2.1 System Architecture Overview
 
 ```
-┌─────────────┐
-│   User UI   │
-│  (React)    │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────────────────────────────┐
-│      Backend API (Node.js/FastAPI)   │
-│  ┌───────────────────────────────┐  │
-│  │   Authentication & Auth       │  │
-│  │   Business Logic              │  │
-│  │   API Orchestration           │  │
-│  └───────────────────────────────┘  │
-└───┬───────────┬───────────┬─────────┘
-    │           │           │
-    ▼           ▼           ▼
-┌─────────┐ ┌──────────┐ ┌──────────┐
-│Brandfetch│ │Printify  │ │ Shopify  │
-│   API   │ │   API    │ │   API    │
-└─────────┘ └──────────┘ └──────────┘
-    │           │           │
-    └───────────┴───────────┘
-                │
-                ▼
-    ┌───────────────────────┐
-    │   PostgreSQL + Redis  │
-    │   (Data & Cache)      │
-    └───────────────────────┘
-                │
-                ▼
-    ┌───────────────────────┐
-    │   Queue System        │
-    │   (Bull/BullMQ)       │
-    └───────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                         Branded Fit Platform                     │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                │
+        ┌───────────────────────┼───────────────────────┐
+        │                       │                       │
+        ▼                       ▼                       ▼
+┌───────────────┐      ┌──────────────┐       ┌───────────────┐
+│   Frontend    │      │   Backend    │       │   Database    │
+│  (React SPA)  │◄────►│  (Node.js)   │◄─────►│  (PostgreSQL) │
+│               │      │   Express    │       │   + Redis     │
+└───────────────┘      └──────────────┘       └───────────────┘
+                                │
+                                │
+        ┌───────────────────────┼───────────────────────┐
+        │                       │                       │
+        ▼                       ▼                       ▼
+┌───────────────┐      ┌──────────────┐       ┌───────────────┐
+│  Brandfetch   │      │   Printify   │       │    Shopify    │
+│   Logo API    │      │   Print-on-  │       │   E-commerce  │
+│               │      │   Demand API │       │   Platform    │
+└───────────────┘      └──────────────┘       └───────────────┘
 ```
 
-### 4.2 Complete Data Flow
+### 2.2 Component Architecture
 
-**End-to-End Customer Journey:**
+#### Frontend Layer
+- **Technology:** React.js with TypeScript
+- **State Management:** Redux or Zustand
+- **UI Framework:** Tailwind CSS or Material-UI
+- **Hosting:** Vercel or AWS CloudFront + S3
 
-**Phase 1: Company Setup**
-1. User enters company name/URL
-2. Backend normalizes domain
-3. Call Brandfetch API for logo retrieval
-4. Cache logo data in PostgreSQL + Redis
-5. Display logo variants to user
-6. User selects preferred logo and products
+**Key Features:**
+- Merchant dashboard for store management
+- Logo search and preview interface
+- Product catalog browsing
+- Store analytics and order tracking
+- Onboarding wizard for new merchants
 
-**Phase 2: Product Creation**
-1. User selects product types (t-shirts, mugs, etc.)
-2. Backend uploads logo to Printify
-3. Queue product creation jobs (200/30min limit)
-4. Worker processes queue:
-   - Create product with logo positioning
-   - Generate mockups
-   - Store product metadata
-5. Products ready for review
+#### Backend Layer
+- **Technology:** Node.js with Express.js or Nest.js
+- **Language:** TypeScript for type safety
+- **API Style:** RESTful with GraphQL consideration for complex queries
+- **Hosting:** AWS ECS/Fargate, Google Cloud Run, or Railway
 
-**Phase 3: Store Setup**
-1. User initiates Shopify connection
-2. OAuth flow authenticates
-3. Backend receives access token
-4. Store configuration created
-5. Products synced to Shopify
-6. Store goes live
+**Key Services:**
+- **Authentication Service:** JWT-based auth, OAuth integration
+- **Logo Service:** Brandfetch integration with caching layer
+- **Product Service:** Printify catalog management
+- **Store Service:** Shopify store creation and management
+- **Order Service:** Order processing and fulfillment orchestration
+- **Webhook Service:** Event handling for Shopify/Printify webhooks
 
-**Phase 4: Order Fulfillment**
-1. Customer browses Shopify store
-2. Customer places order
-3. Shopify webhook → Backend
-4. Backend validates and creates Printify order
-5. Printify routes to print provider
-6. Print provider fulfills
-7. Tracking info → Shopify
-8. Customer receives shipment notification
+#### Data Layer
+- **Primary Database:** PostgreSQL 15+ for relational data
+- **Cache Layer:** Redis for logo caching and session management
+- **Object Storage:** AWS S3 or Cloudflare R2 for logo/mockup storage
+- **Queue System:** BullMQ (Redis-based) or AWS SQS for async processing
 
-### 4.3 Database Schema
+**Database Schema (Key Tables):**
+```
+merchants
+  - id, email, company_name, shopify_store_url, created_at
 
-**Core Tables:**
+stores
+  - id, merchant_id, shopify_store_id, access_token, status
 
-```sql
--- Companies
-CREATE TABLE companies (
-  id UUID PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  domain VARCHAR(255) UNIQUE NOT NULL,
-  logo_url TEXT,
-  logo_variants JSONB,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
+logos
+  - id, domain, brand_name, logo_url, cached_at, expires_at
 
--- Shopify Stores
-CREATE TABLE shopify_stores (
-  id UUID PRIMARY KEY,
-  company_id UUID REFERENCES companies(id),
-  shop_domain VARCHAR(255) UNIQUE NOT NULL,
-  access_token TEXT NOT NULL, -- Encrypted
-  scopes TEXT[],
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
+products
+  - id, store_id, printify_product_id, shopify_product_id, status
 
--- Products
-CREATE TABLE products (
-  id UUID PRIMARY KEY,
-  company_id UUID REFERENCES companies(id),
-  shopify_store_id UUID REFERENCES shopify_stores(id),
-  printify_product_id VARCHAR(255),
-  shopify_product_id VARCHAR(255),
-  title VARCHAR(255),
-  description TEXT,
-  mockup_urls JSONB,
-  price DECIMAL(10,2),
-  status VARCHAR(50),
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Orders
-CREATE TABLE orders (
-  id UUID PRIMARY KEY,
-  shopify_order_id VARCHAR(255),
-  printify_order_id VARCHAR(255),
-  shopify_store_id UUID REFERENCES shopify_stores(id),
-  customer_email VARCHAR(255),
-  total_price DECIMAL(10,2),
-  status VARCHAR(50),
-  fulfillment_status VARCHAR(50),
-  tracking_number VARCHAR(255),
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Webhook Events (for idempotency)
-CREATE TABLE webhook_events (
-  id UUID PRIMARY KEY,
-  source VARCHAR(50), -- 'shopify' or 'printify'
-  event_type VARCHAR(100),
-  event_id VARCHAR(255) UNIQUE,
-  payload JSONB,
-  processed BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT NOW()
-);
+orders
+  - id, store_id, shopify_order_id, printify_order_id, status, tracking
 ```
 
-### 4.4 API Integration Sequence
+#### External Integrations Layer
 
-**Sequence Diagram: Complete Product Creation Flow**
+**Brandfetch Integration:**
+- Wrapper service with retry logic
+- Redis-based logo caching (6-12 month TTL)
+- Fallback logo generation for missing brands
+- Usage monitoring and alerting at 70% quota
+
+**Printify Integration:**
+- OAuth token management
+- Product publishing queue (stay under 200/30min limit)
+- Webhook event handlers for order status
+- Mockup caching to reduce generation requests
+
+**Shopify Integration:**
+- OAuth app installation flow
+- Rate-limited request queue (2 req/sec compliance)
+- Webhook signature verification
+- Multi-tenant token storage and retrieval
+- GraphQL query optimization
+
+### 2.3 Integration Workflow
+
+#### Merchant Onboarding Flow
 
 ```
-User → Backend → Brandfetch → Backend → Cache → Printify → Backend → Shopify → Backend → User
+1. Merchant Sign-Up
+   ├─> Create account in Branded Fit
+   └─> Email verification
 
-1. User: "Create Nike store"
-2. Backend: GET Brandfetch API (logo)
-3. Brandfetch: Returns logo data
-4. Backend: Cache logo in Redis/PostgreSQL
-5. Backend: POST Printify (upload logo)
-6. Printify: Returns image ID
-7. Backend: POST Printify (create products)
-8. Printify: Returns product IDs + mockups
-9. Backend: POST Shopify (create products)
-10. Shopify: Returns product URLs
-11. Backend: Store all IDs in database
-12. User: Receives store URL
+2. Shopify Store Connection
+   ├─> OAuth authorization flow
+   ├─> Install Branded Fit app in Shopify store
+   ├─> Store access token securely
+   └─> Verify store connection
+
+3. Company Logo Retrieval
+   ├─> Merchant enters company domain
+   ├─> Backend queries Brandfetch API
+   ├─> Cache logo in Redis + S3
+   └─> Display logo preview to merchant
+
+4. Product Selection
+   ├─> Merchant browses Printify catalog
+   ├─> Select products (t-shirts, mugs, hats, etc.)
+   └─> Configure variants (sizes, colors)
+
+5. Product Generation
+   ├─> Backend uploads logo to Printify
+   ├─> Create products with logo placement
+   ├─> Generate mockup images
+   ├─> Publish products to Shopify store
+   └─> Merchant reviews and approves
 ```
 
-### 4.5 Error Handling & Resilience
+#### Order Fulfillment Flow
 
-**Critical Failure Points:**
+```
+1. Customer Order Placed
+   └─> Shopify sends 'orders/create' webhook
 
-1. **Brandfetch logo not found**
-   - Fallback: Request user upload
-   - Fallback: Use default placeholder
-   - Fallback: Try alternative search terms
+2. Webhook Received
+   ├─> Validate webhook signature
+   ├─> Extract order details (product, quantity, shipping)
+   └─> Store order in database
 
-2. **Printify rate limit exceeded**
-   - Queue jobs with exponential backoff
-   - Implement job retry with max attempts
-   - Notify user of delay
+3. Order Submitted to Printify
+   ├─> Map Shopify order to Printify format
+   ├─> Submit order via Printify API
+   ├─> Receive Printify order ID
+   └─> Update database with Printify reference
 
-3. **Shopify OAuth failure**
-   - Clear error messaging
-   - Retry mechanism
-   - Support documentation
+4. Order Processing
+   ├─> Printify routes to print provider
+   ├─> Provider prints and packages product
+   └─> Printify sends 'order:sent-to-production' webhook
 
-4. **Webhook delivery failure**
-   - Implement webhook retry (Shopify retries 19 times)
-   - Store events for manual replay
-   - Idempotency checks using event_id
+5. Order Shipment
+   ├─> Provider ships order
+   ├─> Printify sends 'order:updated' webhook with tracking
+   ├─> Backend updates Shopify order with tracking
+   └─> Shopify notifies customer via email
 
-**Retry Strategy:**
+6. Order Completion
+   └─> Track delivery status and customer satisfaction
+```
+
+#### Data Flow Diagram
+
+```
+Merchant Dashboard (Frontend)
+         │
+         │ HTTPS/JSON
+         ▼
+API Gateway (Backend)
+         │
+         ├─────────────────────────┐
+         │                         │
+         ▼                         ▼
+  Auth Service              Logo Service
+         │                         │
+         │                         ├─> Brandfetch API (HTTPS)
+         │                         ├─> Redis Cache (read/write)
+         │                         └─> S3 Storage (persist)
+         │
+         ├─────────────────────────┐
+         │                         │
+         ▼                         ▼
+  Product Service           Store Service
+         │                         │
+         ├─> Printify API          ├─> Shopify API (GraphQL/REST)
+         │   (OAuth, HTTPS)        │   (OAuth, HTTPS)
+         │                         │
+         ▼                         ▼
+  PostgreSQL Database ◄───────► Redis Cache
+         │
+         │
+         ▼
+  Order Service
+         │
+         ├─> Printify Orders API
+         ├─> Shopify Orders API
+         └─> Webhook Processing Queue
+```
+
+---
+
+## 3. Development Timeline
+
+### Phase 1: Foundation & Research (Weeks 1-3)
+
+**Week 1: Project Setup**
+- Set up development environment and repository
+- Configure CI/CD pipeline (GitHub Actions or GitLab CI)
+- Set up staging and production environments
+- Create database schema and migrations
+- Establish code standards and linting
+
+**Week 2: API Exploration**
+- Create developer accounts for Brandfetch, Printify, Shopify
+- Build proof-of-concept integrations for each API
+- Test rate limits and error handling
+- Document API quirks and best practices
+- Validate pricing assumptions
+
+**Week 3: Architecture Finalization**
+- Finalize technology stack decisions
+- Design database schema with migrations
+- Create API contract specifications (OpenAPI/Swagger)
+- Set up monitoring and logging infrastructure (e.g., Datadog, Sentry)
+- Implement authentication system (JWT, OAuth)
+
+### Phase 2: Core Backend Development (Weeks 4-8)
+
+**Week 4: Brandfetch Integration**
+- Build logo retrieval service with Brandfetch API
+- Implement Redis caching layer (6-month TTL)
+- Create S3 storage integration for logo persistence
+- Build fallback logo generation for missing brands
+- Add usage monitoring and alerting
+
+**Week 5: Printify Integration**
+- Implement OAuth flow for Printify
+- Build product catalog browsing service
+- Create product creation workflow (upload logo, place on product)
+- Implement mockup generation and caching
+- Build rate-limited publishing queue (200/30min compliance)
+
+**Week 6: Shopify Integration**
+- Build Shopify OAuth app installation flow
+- Implement store connection and token management
+- Create product publishing to Shopify (GraphQL productCreate)
+- Build rate-limited request queue (2 req/sec)
+- Implement webhook signature verification
+
+**Week 7: Webhook & Order Processing**
+- Build webhook receiver endpoints (Shopify + Printify)
+- Implement order processing pipeline
+- Create Printify order submission service
+- Build order status tracking and synchronization
+- Implement retry logic and error handling
+
+**Week 8: Testing & Refinement**
+- Write unit tests for all services (80%+ coverage)
+- Integration testing with real API environments
+- Load testing for rate limit compliance
+- Security audit (OWASP Top 10)
+- Bug fixes and performance optimization
+
+### Phase 3: Frontend Development (Weeks 9-12)
+
+**Week 9: Core UI Components**
+- Build authentication pages (login, signup, password reset)
+- Create merchant dashboard layout
+- Implement logo search and preview interface
+- Build product catalog browsing UI
+- Design responsive layouts (mobile, tablet, desktop)
+
+**Week 10: Onboarding Flow**
+- Create step-by-step onboarding wizard
+- Shopify store connection UI
+- Company logo input and preview
+- Product selection and configuration interface
+- Store preview and launch workflow
+
+**Week 11: Store Management**
+- Build product management interface (edit, delete, republish)
+- Create order tracking dashboard
+- Implement analytics and reporting views
+- Add customer management features
+- Build settings and account management pages
+
+**Week 12: Polish & Testing**
+- User experience testing and refinement
+- Cross-browser testing (Chrome, Firefox, Safari, Edge)
+- Accessibility audit (WCAG 2.1 AA compliance)
+- Performance optimization (lazy loading, code splitting)
+- Bug fixes and final polish
+
+### Phase 4: MVP Launch (Weeks 13-16)
+
+**Week 13: Beta Testing**
+- Onboard 5-10 beta merchants
+- Monitor system performance and API usage
+- Gather user feedback on UX and features
+- Identify and fix critical bugs
+- Stress test with real-world usage
+
+**Week 14: Compliance & Documentation**
+- Finalize terms of service and privacy policy
+- GDPR compliance review (for EU merchants)
+- Create merchant onboarding documentation
+- Write API integration guides
+- Record tutorial videos
+
+**Week 15: Production Readiness**
+- Final security audit and penetration testing
+- Set up production monitoring and alerting
+- Configure autoscaling and load balancing
+- Implement backup and disaster recovery
+- Create runbook for operations team
+
+**Week 16: MVP Launch**
+- Deploy to production environment
+- Open for public merchant signups
+- Monitor system health and user activity
+- Provide customer support
+- Begin iterating based on feedback
+
+### Post-MVP: Enhancement & Scale (Weeks 17-24)
+
+**Phase 5: Feature Expansion**
+- Add support for additional Printify products
+- Build bulk product import/export
+- Implement team collaboration features
+- Create advanced analytics and reporting
+- Add email marketing integrations
+
+**Phase 6: Optimization & Scale**
+- Optimize database queries and indexing
+- Implement caching strategy enhancements
+- Build horizontal scaling for API services
+- Add CDN for global performance
+- Implement advanced monitoring and observability
+
+---
+
+## 4. Technical Risks & Mitigation Strategies
+
+### 4.1 API Rate Limiting
+
+**Risk:** Exceeding API rate limits leads to service degradation and 429 errors.
+
+| API | Rate Limit | Risk Level | Impact |
+|-----|------------|------------|--------|
+| Brandfetch | 5,000/month (Growth plan) | Medium | Logo retrieval failures |
+| Printify | 200 publishes/30min | High | Product publishing delays |
+| Shopify | 2 req/sec (standard) | High | Store operations throttled |
+
+**Mitigation Strategies:**
+1. **Implement Request Queues:** Use BullMQ or AWS SQS with rate limit awareness
+2. **Aggressive Caching:** Cache Brandfetch logos for 6-12 months, Printify catalogs for 1 week
+3. **Monitoring & Alerting:** Set alerts at 70% quota usage
+4. **Backoff & Retry:** Exponential backoff with jitter for 429 responses
+5. **Batch Operations:** Group API calls where possible (e.g., Shopify GraphQL bulk operations)
+6. **Upgrade Plans:** Move to higher tiers as usage grows (Shopify Plus for 10x rate limits)
+
+**Contingency Plan:**
+- If rate limits are consistently hit, implement manual review queue for product publishing
+- Consider distributing operations across multiple time windows
+- For Shopify, upgrade to Plus plan ($2,000/month) for 20 req/sec limit
+
+### 4.2 Logo Retrieval Failures
+
+**Risk:** Brandfetch may not have logos for small businesses, new companies, or niche brands.
+
+**Impact:** Estimated 10-20% of logo lookups may fail for small business segment.
+
+**Mitigation Strategies:**
+1. **Fallback Logo Generation:** Create text-based logos with company initials
+2. **Manual Upload Option:** Allow merchants to upload custom logos
+3. **Alternative APIs:** Integrate secondary logo providers (RiteKit Company Logo API)
+4. **Domain Scraping:** Build web scraper to extract logos from company websites (fallback)
+5. **Logo Library:** Curate common small business logo templates
+
+**Implementation:**
 ```javascript
-async function retryWithBackoff(fn, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (i === maxRetries - 1) throw error;
-      const delay = Math.pow(2, i) * 1000;
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
+async function retrieveLogo(domain) {
+  try {
+    // Primary: Brandfetch API
+    const logo = await brandfetch.getLogo(domain);
+    return logo;
+  } catch (error) {
+    // Fallback 1: Check local cache for manual uploads
+    const manualLogo = await db.getMerchantLogo(domain);
+    if (manualLogo) return manualLogo;
+
+    // Fallback 2: Generate text-based logo
+    const generatedLogo = await generateTextLogo(domain);
+    return generatedLogo;
   }
 }
 ```
 
----
+### 4.3 Print Quality & Fulfillment Issues
 
-## 5. Technical Risks & Mitigation Strategies
+**Risk:** Printify print providers may deliver inconsistent quality, delayed shipments, or errors.
 
-### 5.1 Critical Risks
+**Impact:** Customer dissatisfaction, refunds, negative reviews for merchant stores.
 
-**Risk 1: API Rate Limiting**
-- **Impact:** HIGH
-- **Probability:** MEDIUM
-- **Mitigation:**
-  - Implement queue system (Bull/BullMQ)
-  - Cache aggressively (Redis)
-  - Batch operations where possible
-  - Monitor rate limit headers
-  - Request limit increases for production
+**Mitigation Strategies:**
+1. **Provider Vetting:** Test and curate 2-3 top-rated print providers
+2. **Quality Monitoring:** Track provider performance metrics (on-time rate, defect rate)
+3. **Automatic Provider Switching:** If quality degrades, switch to alternative provider
+4. **Sample Orders:** Require merchants to approve sample orders before going live
+5. **Customer Expectations:** Clearly communicate 2-7 day shipping times (not Amazon Prime)
+6. **Return Policy:** Establish clear refund/replacement policy for defective products
 
-**Risk 2: Third-Party API Downtime**
-- **Impact:** HIGH
-- **Probability:** LOW-MEDIUM
-- **Mitigation:**
-  - Implement circuit breakers
-  - Graceful degradation
-  - Status page monitoring
-  - Fallback options where applicable
-  - Clear user communication
+**Metrics to Monitor:**
+- On-time delivery rate (target: >95%)
+- Defect rate (target: <2%)
+- Customer satisfaction scores
+- Average shipping time
 
-**Risk 3: OAuth Token Expiration**
-- **Impact:** MEDIUM
-- **Probability:** HIGH
-- **Mitigation:**
-  - Implement token refresh logic
-  - Monitor token expiry
-  - Proactive re-authentication prompts
-  - Secure token storage (encrypted)
+### 4.4 Shopify API Changes & Deprecation
 
-**Risk 4: Webhook Delivery Failures**
-- **Impact:** MEDIUM
-- **Probability:** MEDIUM
-- **Mitigation:**
-  - Implement idempotency
-  - Store webhook payloads
-  - Manual retry mechanism
-  - Webhook signature verification
-  - Fallback polling for critical events
+**Risk:** Shopify versions APIs with 12-month deprecation cycles, requiring regular updates.
 
-**Risk 5: Logo Quality Issues**
-- **Impact:** LOW-MEDIUM
-- **Probability:** MEDIUM
-- **Mitigation:**
-  - Image validation before upload
-  - Resolution requirements check
-  - User preview before publishing
-  - Manual upload fallback
-  - Quality guidelines documentation
+**Impact:** API breakage if not updated; potential merchant store downtime.
 
-**Risk 6: Cost Overruns**
-- **Impact:** MEDIUM
-- **Probability:** LOW
-- **Mitigation:**
-  - Set API usage alerts
-  - Monitor per-customer costs
-  - Implement usage quotas
-  - Cost estimation before bulk operations
-  - Brandfetch overage monitoring
+**Mitigation Strategies:**
+1. **API Version Tracking:** Subscribe to Shopify developer changelog
+2. **Quarterly Reviews:** Review deprecation notices every 3 months
+3. **Version Pinning:** Explicitly use versioned API endpoints (e.g., `2026-01`)
+4. **Automated Testing:** CI/CD tests against latest Shopify API version
+5. **Buffer Time:** Start migration 6 months before deprecation deadline
+6. **Abstraction Layer:** Build wrapper service to isolate API version dependencies
 
-### 5.2 Security Considerations
+**Timeline:**
+- Current version: `2026-01`
+- Next deprecation: ~January 2027
+- Migration window: July 2026 - December 2026
 
-**Authentication & Authorization:**
-- Use OAuth 2.0 for all Shopify integrations
-- Store API keys/tokens encrypted in database
-- Never expose keys in client-side code
-- Implement least-privilege access scopes
-- Regular key rotation policy
+### 4.5 Cost Overruns
 
-**Data Protection:**
-- Encrypt sensitive data at rest
-- Use HTTPS for all API communications
-- Implement webhook signature verification
-- Input validation on all endpoints
-- SQL injection prevention (parameterized queries)
-- XSS prevention on user-generated content
+**Risk:** API costs exceed projections as merchant base grows.
 
-**Webhook Security:**
-```javascript
-// Verify Shopify webhook signature
-function verifyShopifyWebhook(body, hmacHeader) {
-  const hash = crypto
-    .createHmac('sha256', SHOPIFY_WEBHOOK_SECRET)
-    .update(body, 'utf8')
-    .digest('base64');
-  return crypto.timingSafeEqual(
-    Buffer.from(hash),
-    Buffer.from(hmacHeader)
-  );
-}
-```
+**Impact:** Reduced profit margins or need for price increases.
 
-### 5.3 Scalability Considerations
+**Cost Drivers:**
+- Brandfetch: $0.026 per logo lookup (Growth plan)
+- Printify: $29/month (Premium plan recommended)
+- Shopify: $0 (merchants pay their own subscriptions)
+- Infrastructure: $200-500/month (AWS hosting for 100-500 stores)
 
-**Bottlenecks:**
-1. Printify product creation rate limit (200/30min)
-2. Shopify API rate limit (2-4 req/sec)
-3. Mockup generation latency
-4. Database query performance at scale
+**Mitigation Strategies:**
+1. **Logo Caching:** Reduce Brandfetch calls by 90%+ with 6-12 month TTL
+2. **Monitoring & Budgeting:** Set API cost budgets with alerts
+3. **Tier-Based Pricing:** Pass API costs to merchants in pricing tiers
+4. **Annual Contracts:** Brandfetch annual plan saves 20%
+5. **Usage Optimization:** Audit and eliminate unnecessary API calls
 
-**Scaling Strategies:**
-- Horizontal scaling with load balancer
-- Database connection pooling
-- Redis caching layer
-- CDN for static assets (mockups)
-- Async processing with queues
-- Database indexing on foreign keys
-- Read replicas for analytics
+**Projected Monthly Costs (at scale):**
 
----
+| Merchants | Brandfetch | Printify | Infrastructure | Total |
+|-----------|------------|----------|----------------|-------|
+| 10 | $129 | $29 | $100 | $258 |
+| 50 | $129 | $29 | $200 | $358 |
+| 100 | $258 | $29 | $350 | $637 |
+| 500 | $516 | $29 | $800 | $1,345 |
+| 1,000 | $1,032 | $29 | $1,500 | $2,561 |
 
-## 6. Development Timeline Estimate
+**Note:** Costs assume efficient caching reduces Brandfetch to ~1 lookup per merchant per year.
 
-### 6.1 MVP Development (12-16 Weeks)
+### 4.6 Data Privacy & Security
 
-**Phase 1: Foundation (Weeks 1-3)**
-- Infrastructure setup (AWS/Vercel, PostgreSQL, Redis)
-- Authentication system
-- Database schema implementation
-- Basic frontend scaffolding
-- Developer account setup (Brandfetch, Printify, Shopify)
+**Risk:** Handling merchant OAuth tokens, customer PII, and payment data requires strict security.
 
-**Phase 2: API Integrations (Weeks 4-7)**
-- Brandfetch integration + caching
-- Printify integration + queue system
-- Shopify OAuth implementation
-- Webhook handlers (Shopify, Printify)
-- Error handling framework
+**Compliance Requirements:**
+- GDPR (EU merchants)
+- CCPA (California customers)
+- PCI DSS (payment data, though Shopify handles directly)
+- SOC 2 (for enterprise merchants)
 
-**Phase 3: Core Features (Weeks 8-11)**
-- Company/logo management UI
-- Product selection and creation flow
-- Store connection wizard
-- Order processing automation
-- Admin dashboard
+**Mitigation Strategies:**
+1. **Token Encryption:** Encrypt all OAuth tokens at rest (AES-256)
+2. **Secrets Management:** Use AWS Secrets Manager or HashiCorp Vault
+3. **Minimal Data Collection:** Only store necessary PII
+4. **Data Retention Policies:** Auto-delete old orders/logs per GDPR (e.g., 2 years)
+5. **Regular Audits:** Quarterly security audits and penetration testing
+6. **Webhook Verification:** Verify all webhook signatures (HMAC-SHA256)
+7. **HTTPS Only:** Enforce TLS 1.3 for all API communication
+8. **Access Controls:** Role-based access control (RBAC) for team members
 
-**Phase 4: Testing & Polish (Weeks 12-14)**
-- Integration testing
-- End-to-end testing
-- Security audit
-- Performance optimization
-- Documentation
+### 4.7 Scalability Bottlenecks
 
-**Phase 5: Beta Launch (Weeks 15-16)**
-- Beta user onboarding
-- Monitoring setup
-- Bug fixes
-- Feedback collection
+**Risk:** System unable to handle growth beyond 1,000 merchants.
 
-### 6.2 Post-MVP Enhancements
+**Potential Bottlenecks:**
+- Database query performance
+- API rate limit constraints (Shopify 2 req/sec)
+- Webhook processing delays
+- Cache invalidation complexity
+- Background job queue saturation
 
-**Phase 6: Advanced Features (Months 4-6)**
-- Multi-store management
-- Custom branding options
-- Analytics dashboard
-- Bulk product operations
-- Email notifications
-- Customer portal
+**Mitigation Strategies:**
+1. **Horizontal Scaling:** Design stateless backend services for easy scaling
+2. **Database Optimization:**
+   - Add indexes on frequently queried fields
+   - Partition large tables (orders, logs) by date
+   - Use read replicas for analytics queries
+3. **Queue-Based Architecture:** Decouple synchronous operations with async queues
+4. **CDN for Assets:** Serve logos and mockups via CloudFront or Cloudflare
+5. **Caching Strategy:** Multi-layer caching (Redis, CDN, browser)
+6. **Load Testing:** Regular load tests to identify bottlenecks before production
+7. **Auto-Scaling:** Configure ECS/Fargate to scale based on CPU/memory metrics
+
+**Scale Targets:**
+- Support 1,000 active merchants (MVP)
+- Support 10,000 active merchants (Year 1)
+- Handle 10,000 orders/day (Year 1)
+- 99.9% uptime SLA
 
 ---
 
-## 7. Technology Stack Recommendations
+## 5. Infrastructure & Hosting Requirements
 
-### 7.1 Backend
+### 5.1 Hosting Environment
 
-**Option 1: Node.js/TypeScript (Recommended)**
-```
-- Framework: Express.js or Fastify
-- ORM: Prisma or TypeORM
-- Queue: Bull/BullMQ
-- Validation: Zod or Joi
-- Testing: Jest + Supertest
-```
+**Recommended Stack: AWS (Amazon Web Services)**
 
-**Pros:**
-- Excellent Shopify ecosystem (@shopify/shopify-api)
-- Async by default (good for API calls)
-- Large community and libraries
-- TypeScript for type safety
+**Rationale:**
+- Mature, battle-tested services
+- Excellent documentation and community
+- Cost-effective for early-stage startups
+- Easy integration with Shopify/Printify (both use AWS)
+- Strong security and compliance certifications
 
-**Cons:**
-- Single-threaded (mitigated by clustering)
-- Memory management required
+**Alternative Options:**
+- **Google Cloud Platform (GCP):** Comparable pricing, strong data analytics tools
+- **Railway/Render:** Simplified deployment, good for MVPs, less control at scale
+- **DigitalOcean:** Budget-friendly, simple interface, fewer advanced features
 
-**Option 2: Python/FastAPI**
-```
-- Framework: FastAPI
-- ORM: SQLAlchemy
-- Queue: Celery + Redis
-- Validation: Pydantic
-- Testing: Pytest
-```
+### 5.2 Core Infrastructure Components
 
-**Pros:**
-- Excellent for data processing
-- Strong typing with Pydantic
-- Great async support
-- Familiar to data engineers
+#### Compute
+- **Service:** AWS ECS with Fargate (serverless containers)
+- **Configuration:**
+  - 2-4 vCPU, 4-8 GB RAM per container (API service)
+  - Auto-scaling: 2-10 containers based on load
+- **Cost:** ~$50-150/month (MVP), ~$300-600/month (1,000 merchants)
 
-**Cons:**
-- Fewer Shopify-specific libraries
-- Slightly more deployment complexity
+**Alternative:** AWS Lambda for lightweight services (webhooks, cron jobs)
 
-**Recommendation:** Node.js/TypeScript for MVP due to Shopify ecosystem maturity.
+#### Database
+- **Service:** AWS RDS for PostgreSQL 15
+- **Configuration:**
+  - Instance: db.t4g.medium (2 vCPU, 4 GB RAM) for MVP
+  - Storage: 100 GB SSD with auto-scaling
+  - Multi-AZ for high availability (production)
+  - Automated backups (7-day retention)
+- **Cost:** ~$60-100/month (MVP), ~$200-400/month (production)
 
-### 7.2 Frontend
+#### Cache & Queue
+- **Service:** AWS ElastiCache for Redis
+- **Configuration:**
+  - Instance: cache.t4g.micro (2 nodes for HA)
+  - Memory: 1 GB per node (MVP), scale to 4-8 GB
+- **Cost:** ~$25-50/month (MVP), ~$100-200/month (production)
 
-**React/Next.js (Recommended)**
-```
-- Framework: Next.js 14+ (App Router)
-- UI Library: Tailwind CSS + shadcn/ui
-- State Management: Zustand or Redux Toolkit
-- Forms: React Hook Form + Zod
-- API Client: Axios or tRPC
-```
+**Queue:** Use BullMQ (Redis-based) for job processing, or AWS SQS ($0.40 per million requests)
 
-**Benefits:**
-- Server-side rendering for SEO
-- API routes for webhooks
-- Great developer experience
-- Large component ecosystem
-- Shopify Polaris components available
+#### Object Storage
+- **Service:** AWS S3 for logo and mockup storage
+- **Configuration:**
+  - Standard storage tier
+  - CloudFront CDN integration
+  - Lifecycle policies (transition to Glacier after 1 year)
+- **Cost:** ~$5-20/month (MVP), ~$50-100/month (1,000 merchants)
 
-### 7.3 Database & Caching
+#### Load Balancing
+- **Service:** AWS Application Load Balancer (ALB)
+- **Configuration:**
+  - HTTPS termination with ACM SSL certificates (free)
+  - Health checks and auto-scaling integration
+- **Cost:** ~$20-30/month
 
-**PostgreSQL (Recommended)**
-- Mature and reliable
-- Excellent JSON support (JSONB)
-- Strong ACID guarantees
-- Managed options (AWS RDS, Supabase)
+#### Monitoring & Logging
+- **Service:** AWS CloudWatch (basic), or Datadog/New Relic (advanced)
+- **Configuration:**
+  - Application logs (retention: 30 days)
+  - API metrics and dashboards
+  - Alerts for errors, rate limits, downtime
+- **Cost:** ~$10-30/month (CloudWatch), ~$50-200/month (Datadog)
 
-**Redis**
-- Logo URL caching
-- Session storage
-- Queue backend (Bull)
-- Rate limiting
+#### CI/CD Pipeline
+- **Service:** GitHub Actions or AWS CodePipeline
+- **Configuration:**
+  - Automated testing on pull requests
+  - Automated deployment to staging/production
+  - Docker image building and pushing to ECR
+- **Cost:** Free (GitHub Actions for public repos), ~$10-30/month (private)
 
-### 7.4 Infrastructure
+### 5.3 Total Infrastructure Cost Projections
 
-**Option 1: AWS**
-```
-- Compute: ECS/Fargate or EC2
-- Database: RDS PostgreSQL
-- Cache: ElastiCache Redis
-- Storage: S3
-- CDN: CloudFront
-```
+**MVP (10-50 merchants):**
+- Compute: $50-100/month
+- Database: $60-100/month
+- Cache/Queue: $25-50/month
+- Storage: $5-10/month
+- Load Balancer: $20-30/month
+- Monitoring: $10-30/month
+- **Total: $170-320/month**
 
-**Option 2: Vercel + Supabase (Recommended for MVP)**
-```
-- Compute: Vercel (Next.js)
-- Database: Supabase (PostgreSQL)
-- Cache: Upstash Redis
-- Storage: Vercel Blob or S3
-- CDN: Built-in
-```
-
-**Recommendation:** Vercel + Supabase for rapid MVP deployment, migrate to AWS for scale.
-
-### 7.5 Monitoring & Observability
-
-**Essential Tools:**
-- **Error Tracking:** Sentry
-- **Logging:** Datadog or LogRocket
-- **Uptime Monitoring:** Pingdom or UptimeRobot
-- **APM:** New Relic or Datadog APM
-- **Analytics:** Mixpanel or Amplitude
-
----
-
-## 8. Cost Analysis
-
-### 8.1 API Costs (Monthly Estimates)
-
-**Brandfetch:**
-- MVP: FREE (500K requests/month)
-- Growth: $99/month (2,500 Brand API calls)
-- Enterprise: Custom pricing
-
-**Printify:**
-- API Access: FREE
-- Product costs: $8-$15 per item (paid on fulfillment)
-- No monthly fees
-
-**Shopify:**
-- Basic Plan: $39/month per store
-- Transaction fees: 0.5-2% (avoidable with Shopify Payments)
-
-**Infrastructure (Vercel + Supabase):**
-- Vercel Pro: $20/month
-- Supabase Pro: $25/month
-- Upstash Redis: $10-30/month
-- **Total:** ~$55-75/month
-
-**Grand Total (MVP):**
-- Fixed: ~$100-150/month
-- Variable: Product fulfillment costs (pass to customer)
-
-### 8.2 Scaling Costs
-
-**At 100 stores:**
-- Brandfetch: $99/month
-- Infrastructure: $200-300/month
+**Production (500-1,000 merchants):**
+- Compute: $300-600/month
+- Database: $200-400/month
+- Cache/Queue: $100-200/month
+- Storage: $50-100/month
+- Load Balancer: $30-50/month
 - Monitoring: $50-100/month
-- **Total:** ~$350-500/month
+- CDN: $50-100/month
+- **Total: $780-1,550/month**
 
-**At 1,000 stores:**
-- Brandfetch: Enterprise pricing (~$500/month)
-- Infrastructure: $1,000-2,000/month
-- Monitoring: $200-300/month
-- **Total:** ~$1,700-2,800/month
+### 5.4 Security & Compliance
 
----
+**SSL/TLS:**
+- AWS Certificate Manager (ACM) for free SSL certificates
+- Enforce HTTPS only (redirect HTTP to HTTPS)
+- TLS 1.3 for modern security
 
-## 9. Compliance & Legal Considerations
+**Secrets Management:**
+- AWS Secrets Manager for API keys, OAuth tokens, database credentials
+- Rotate secrets every 90 days
+- Cost: ~$5-10/month
 
-### 9.1 Terms of Service Compliance
+**Backup & Disaster Recovery:**
+- RDS automated backups (7-day retention)
+- S3 cross-region replication for critical data
+- Database snapshots before major deployments
+- Recovery Time Objective (RTO): 4 hours
+- Recovery Point Objective (RPO): 1 hour
 
-**Brandfetch:**
-- Must not violate intellectual property rights
-- Attribution not required for Logo API
-- Comply with rate limits and fair use
-
-**Printify:**
-- Must have rights to designs uploaded
-- Comply with print provider restrictions
-- Follow content policies (no offensive content)
-
-**Shopify:**
-- Must follow App Store guidelines if publishing
-- Comply with data protection requirements
-- Webhook endpoint must respond within 5 seconds
-
-### 9.2 Data Protection
-
-**GDPR/CCPA Compliance:**
-- Customer data stored must be protected
-- Right to deletion implementation
-- Data processing agreements with vendors
-- Privacy policy required
-- Cookie consent (if applicable)
-
-### 9.3 Trademark & IP Risks
-
-**Critical Consideration:**
-- Using company logos requires permission
-- Not all companies allow merchandise creation
-- Implement disclaimer that users must have rights
-- Terms of service must include indemnification clause
-- Consider trademark verification service
+**DDoS Protection:**
+- AWS Shield Standard (free, basic protection)
+- Consider AWS WAF for advanced filtering (~$5-20/month)
 
 ---
 
-## 10. Recommendations & Next Steps
+## 6. Cost Analysis
 
-### 10.1 Technical Recommendations
+### 6.1 API Cost Breakdown
 
-**Priority 1: High Priority**
-1. Build with Brandfetch (not Clearbit - sunsetted)
-2. Use OAuth 2.0 for Shopify (required as of Jan 2026)
-3. Implement queue system from day 1 (Printify rate limits)
-4. Use GraphQL for Shopify (more efficient)
-5. Implement comprehensive error handling
+**Brandfetch Logo API:**
+- **Growth Plan:** $129/month for 5,000 requests
+- **Annual Plan:** $103.20/month (20% discount)
+- **Cost per Request:** $0.026 (Growth), $0.021 (Annual)
 
-**Priority 2: Medium Priority**
-1. Add webhook signature verification
-2. Implement Redis caching
-3. Use TypeScript for type safety
-4. Set up monitoring (Sentry)
-5. Create fallback logo flow
+**Usage Assumptions:**
+- 1 logo lookup per new merchant (one-time)
+- 90% cache hit rate after initial lookup
+- Monthly new merchants: 50 (MVP), 200 (growth phase)
 
-**Priority 3: Nice to Have**
-1. Advanced product customization
-2. Multi-store dashboard
-3. Analytics integration
-4. Bulk operations
-5. White-label options
+**Monthly Cost:**
+- MVP (50 new merchants): $129/month
+- Growth (200 new merchants): $258/month (10,000 req tier)
+- At Scale (1,000 merchants): $516/month (20,000 req tier)
 
-### 10.2 Proof of Concept Scope
+**Printify API:**
+- **Free Plan:** $0/month
+- **Premium Plan:** $29/month (20% product discount)
+- **Recommendation:** Premium plan to maximize merchant margins
 
-**Recommended POC (2-3 weeks):**
-1. Brandfetch logo retrieval + display
-2. Single product creation in Printify
-3. Shopify OAuth connection
-4. Product sync Printify → Shopify
-5. Mock order processing flow
+**Shopify API:**
+- **Free:** No direct API costs
+- **Merchant Cost:** Merchants pay their own Shopify subscriptions ($39-105/month)
 
-**Success Criteria:**
-- Successfully retrieve logo from Brandfetch
-- Create product with logo in Printify
-- Sync product to test Shopify store
-- End-to-end flow under 2 minutes
+### 6.2 Total Monthly Operating Costs
 
-### 10.3 Risk Assessment Summary
+| Cost Category | MVP (50 merchants) | Growth (500 merchants) | Scale (1,000 merchants) |
+|---------------|-------------------|------------------------|-------------------------|
+| **API Costs** |
+| Brandfetch | $129 | $258 | $516 |
+| Printify | $29 | $29 | $29 |
+| **Infrastructure** |
+| AWS Hosting | $200 | $800 | $1,500 |
+| Monitoring | $30 | $100 | $150 |
+| **Team** |
+| Development | $15,000 | $30,000 | $50,000 |
+| Support | $0 | $5,000 | $10,000 |
+| **Total** | **$15,388** | **$36,187** | **$62,195** |
 
-| Risk Category | Level | Mitigation Required |
-|--------------|-------|---------------------|
-| Technical Feasibility | LOW | Standard implementation |
-| API Availability | LOW | All APIs stable and documented |
-| Rate Limiting | MEDIUM | Queue system + caching |
-| Security | MEDIUM | OAuth + encryption + validation |
-| Scalability | MEDIUM | Cloud infrastructure + queues |
-| Cost Control | LOW | Predictable pricing models |
-| Legal/IP | HIGH | Terms of service + user verification |
+**Notes:**
+- Development costs assume 1-2 engineers (MVP), 2-4 engineers (growth), 3-6 engineers (scale)
+- Support costs include customer service and merchant onboarding assistance
+- Does not include marketing, sales, or administrative overhead
 
-### 10.4 Go/No-Go Decision
+### 6.3 Pricing Strategy Recommendations
 
-**GO - Proceed with Development**
+To achieve profitability, Branded Fit needs to charge merchants enough to cover platform costs plus margin.
 
-**Justification:**
-✅ All three APIs are production-ready and well-documented
-✅ Brandfetch provides reliable logo retrieval (500K free requests)
-✅ Printify has comprehensive POD capabilities
-✅ Shopify ecosystem is mature with excellent tooling
-✅ Integration patterns are established
-✅ Development timeline is reasonable (12-16 weeks)
-✅ Cost structure is manageable and scalable
-✅ Technical risks can be mitigated with proper architecture
+**Cost Per Merchant (Monthly):**
+- API Costs: $2.58 - $3.23 (Brandfetch amortized) + $0.029 (Printify)
+- Infrastructure: $0.40 - $1.50 (depends on scale)
+- **Total Per-Merchant Cost:** $3-5/month
 
-⚠️ **Critical Action Required:** Legal review of trademark/IP usage policies before launch
+**Recommended Pricing Tiers:**
 
----
+| Tier | Monthly Price | Features | Target Merchant |
+|------|--------------|----------|-----------------|
+| **Starter** | $29/month | 1 store, 50 products, basic analytics | New small businesses |
+| **Growth** | $79/month | 3 stores, 200 products, priority support | Growing businesses |
+| **Pro** | $199/month | Unlimited stores, products, custom branding | Established businesses |
 
-## 11. Conclusion
+**Revenue Projections:**
 
-The technical feasibility assessment confirms that integrating Brandfetch, Printify, and Shopify APIs to build the Branded Fit platform is **highly viable**. All three services offer robust, well-documented APIs with reasonable pricing and proven reliability.
+| Merchants | Avg Price | MRR | Annual Run Rate | Net Margin (After Costs) |
+|-----------|-----------|-----|-----------------|--------------------------|
+| 50 | $49 | $2,450 | $29,400 | -$155,000 (MVP investment) |
+| 500 | $69 | $34,500 | $414,000 | +$50,000 (break-even) |
+| 1,000 | $79 | $79,000 | $948,000 | +$300,000 (profitable) |
 
-**Key Enablers:**
-- Brandfetch's 500K free monthly requests provide ample runway for MVP
-- Printify's comprehensive POD catalog and automatic fulfillment reduce operational complexity
-- Shopify's mature OAuth system and extensive documentation simplify integration
-- Established integration patterns exist between Printify and Shopify
-
-**Key Challenges:**
-- Printify rate limits require queue-based architecture
-- Shopify OAuth adds complexity but is mandatory as of 2026
-- Logo trademark/IP considerations require clear user agreements
-- Multi-API orchestration requires robust error handling
-
-**Recommended Path Forward:**
-1. Build POC to validate end-to-end flow (2-3 weeks)
-2. Implement MVP with recommended tech stack (12-16 weeks)
-3. Launch beta with limited users to validate assumptions
-4. Iterate based on feedback and scale infrastructure
-5. Secure legal review before public launch
-
-The platform is technically achievable within the estimated timeline and budget, with clear paths to handle scaling and edge cases. The primary non-technical risk is the legal/IP consideration around logo usage, which should be addressed through comprehensive terms of service and user verification.
+**Break-Even Analysis:**
+- Need ~200-300 paying merchants at $49-79/month to break even
+- Path to profitability: 6-12 months post-launch (assuming strong customer acquisition)
 
 ---
 
-## Appendix A: Additional Resources
+## 7. Scalability Considerations
 
-### Official Documentation
-- [Brandfetch API Documentation](https://docs.brandfetch.com/)
-- [Brandfetch Developer Portal](https://brandfetch.com/developers)
+### 7.1 Performance Targets
+
+**Response Time SLAs:**
+- Logo retrieval: <500ms (95th percentile)
+- Product creation: <2 seconds (95th percentile)
+- Store publishing: <5 seconds (95th percentile)
+- Webhook processing: <1 second (95th percentile)
+
+**Throughput Targets:**
+- Support 1,000 concurrent merchants
+- Handle 10,000 product publishes/day
+- Process 5,000 orders/day
+- 99.9% uptime (43 minutes downtime/month max)
+
+### 7.2 Scaling Strategies
+
+**Horizontal Scaling:**
+- Stateless API services behind load balancer
+- Auto-scaling based on CPU/memory metrics
+- Blue-green deployments for zero-downtime updates
+
+**Database Scaling:**
+- Read replicas for analytics and reporting queries
+- Partitioning large tables (orders, logs) by date range
+- Connection pooling (PgBouncer) to reduce connection overhead
+- Indexing strategy for common queries
+
+**Cache Optimization:**
+- Multi-layer caching (Redis, CDN, browser)
+- Cache warming for frequently accessed data
+- Cache invalidation strategy (TTL + event-based)
+
+**Queue-Based Architecture:**
+- Decouple synchronous API calls with async job queues
+- Priority queues for time-sensitive operations (order processing)
+- Dead letter queues for failed jobs with manual review
+
+**CDN for Assets:**
+- Serve logos and mockups via CloudFront or Cloudflare
+- Reduce origin server load by 80%+
+- Global edge locations for low-latency access
+
+### 7.3 Monitoring & Observability
+
+**Key Metrics to Track:**
+- API response times (p50, p95, p99)
+- API error rates (4xx, 5xx)
+- Rate limit consumption (Brandfetch, Printify, Shopify)
+- Database query performance (slow query log)
+- Queue depth and processing lag
+- Cache hit rates
+
+**Alerting Thresholds:**
+- Error rate >1% for 5 minutes
+- Response time p95 >2 seconds
+- API quota >70% consumed
+- Queue depth >1,000 jobs
+- Database CPU >80%
+- Service downtime >1 minute
+
+**Tools:**
+- **Application Performance Monitoring (APM):** Datadog, New Relic, or Sentry
+- **Log Aggregation:** AWS CloudWatch Logs or Elasticsearch/Kibana
+- **Uptime Monitoring:** Pingdom, UptimeRobot, or AWS CloudWatch Synthetics
+- **Real User Monitoring (RUM):** Google Analytics, Mixpanel, or Heap
+
+---
+
+## 8. Alternative Approaches
+
+### 8.1 Alternative Logo Providers
+
+**If Brandfetch proves inadequate or too expensive:**
+
+#### Option 1: RiteKit Company Logo API
+- **Capabilities:** Real-time logo extraction from websites, transparent backgrounds
+- **Pricing:** Not publicly disclosed (contact for quote)
+- **Pros:** Handles obscure/new sites, generated fallback logos
+- **Cons:** Less mature than Brandfetch, unknown reliability
+
+#### Option 2: Custom Web Scraping
+- **Approach:** Build scraper to extract logos from company websites
+- **Technology:** Puppeteer or Playwright for headless browser rendering
+- **Pros:** No API costs, full control
+- **Cons:** High development effort, legal gray area, maintenance burden
+
+#### Option 3: Manual Upload Only
+- **Approach:** Require merchants to upload their own logos
+- **Pros:** Zero API costs, always correct logo
+- **Cons:** Poor user experience, higher onboarding friction
+
+**Recommendation:** Start with Brandfetch, add manual upload as fallback, evaluate RiteKit after MVP.
+
+### 8.2 Alternative Print Providers
+
+**If Printify is inadequate:**
+
+#### Option 1: Printful
+- **Capabilities:** Similar to Printify, high-quality products, global fulfillment
+- **Pricing:** Slightly higher product costs but excellent quality
+- **API:** Comprehensive REST API at https://developers.printful.com/docs/
+- **Pros:** Higher quality reputation, more customization options (branding, packaging)
+- **Cons:** Higher costs reduce merchant margins
+
+#### Option 2: Gelato
+- **Capabilities:** Local production in 32 countries, fast shipping
+- **API:** REST API for product creation and order management
+- **Pros:** Faster shipping (local production), lower carbon footprint
+- **Cons:** Smaller product catalog than Printify
+
+#### Option 3: Direct Print Provider Partnerships
+- **Approach:** Partner directly with manufacturers (e.g., Bella+Canvas, Gildan)
+- **Pros:** Maximum margins, quality control
+- **Cons:** Requires inventory management, fulfillment logistics, minimum order quantities
+
+**Recommendation:** Start with Printify for speed and simplicity. Add Printful as premium option for quality-focused merchants.
+
+### 8.3 Alternative E-Commerce Platforms
+
+**If Shopify is not ideal:**
+
+#### Option 1: WooCommerce (WordPress)
+- **Capabilities:** Open-source e-commerce for WordPress sites
+- **Pricing:** Free plugin (merchants pay hosting $10-50/month)
+- **API:** WooCommerce REST API
+- **Pros:** Lower merchant costs, highly customizable
+- **Cons:** Merchants need WordPress knowledge, less polished UX, higher support burden
+
+#### Option 2: BigCommerce
+- **Capabilities:** Similar to Shopify, enterprise-focused
+- **Pricing:** $39-399/month (no transaction fees)
+- **API:** RESTful and GraphQL APIs
+- **Pros:** No transaction fees, built-in B2B features
+- **Cons:** Smaller ecosystem, fewer integrations
+
+#### Option 3: Custom Storefront
+- **Approach:** Build custom e-commerce frontend with Stripe checkout
+- **Pros:** Full control, no platform fees
+- **Cons:** Massive development effort (6+ months), ongoing maintenance
+
+**Recommendation:** Shopify is the best choice for MVP. Consider multi-platform support (Shopify + WooCommerce) in Year 2.
+
+### 8.4 Hybrid Approaches
+
+**Approach 1: Multi-Provider Logo Strategy**
+- Primary: Brandfetch API (90% of lookups)
+- Fallback 1: Manual upload (merchant-provided)
+- Fallback 2: RiteKit API (if Brandfetch fails)
+- Fallback 3: Text-based generated logo (company initials)
+
+**Approach 2: Multi-Provider Print Strategy**
+- Tier 1: Printify (standard quality, low cost)
+- Tier 2: Printful (premium quality, higher cost)
+- Let merchants choose based on margin preferences
+
+**Approach 3: Multi-Platform E-Commerce**
+- Primary: Shopify (most popular, best ecosystem)
+- Secondary: WooCommerce (price-conscious merchants)
+- Phase 2: BigCommerce, Squarespace, Wix support
+
+---
+
+## 9. Recommendations
+
+### 9.1 Recommended Technology Stack
+
+**Go-Forward Stack:**
+- **Logo Provider:** Brandfetch (primary), manual upload (fallback)
+- **Print Provider:** Printify Premium ($29/month for 20% discount)
+- **E-Commerce Platform:** Shopify (OAuth app)
+- **Backend:** Node.js + Express.js + TypeScript
+- **Database:** PostgreSQL 15 + Redis
+- **Hosting:** AWS (ECS Fargate + RDS + ElastiCache + S3)
+- **Monitoring:** Datadog or Sentry
+
+### 9.2 Critical Success Factors
+
+1. **Efficient Caching:** Reduce Brandfetch API calls by 90%+ with Redis caching (6-12 month TTL)
+2. **Rate Limit Compliance:** Build robust queue systems to stay within Printify (200/30min) and Shopify (2 req/sec) limits
+3. **Quality Control:** Vet and monitor Printify print providers for consistent quality
+4. **User Experience:** Streamlined onboarding flow (<5 minutes from signup to first product)
+5. **Customer Support:** Responsive support for merchant questions and technical issues
+
+### 9.3 Go/No-Go Decision Criteria
+
+**Proceed with MVP if:**
+- ✅ Brandfetch Growth plan ($129/month) meets budget
+- ✅ Printify product quality meets standards (order samples)
+- ✅ Shopify OAuth integration completes successfully in testing
+- ✅ Development timeline aligns with 16-week target
+- ✅ Total operating costs <$20k/month for MVP phase
+
+**Reevaluate if:**
+- ❌ Brandfetch coverage <70% for target small business segment
+- ❌ Printify quality inconsistent (>5% defect rate)
+- ❌ Shopify rate limits too restrictive (cannot stay compliant)
+- ❌ Development timeline exceeds 24 weeks
+- ❌ Operating costs >$30k/month without revenue
+
+### 9.4 Next Steps
+
+**Immediate Actions (Next 2 Weeks):**
+1. **Validate Assumptions:** Create developer accounts and test all three APIs
+2. **Order Samples:** Order branded merchandise samples from Printify to assess quality
+3. **Cost Verification:** Confirm Brandfetch, Printify, and infrastructure pricing
+4. **Architecture Review:** Review architecture diagram with engineering team
+5. **Timeline Approval:** Get stakeholder sign-off on 16-week MVP timeline
+
+**Pre-Development (Weeks 3-4):**
+1. Finalize technology stack and hosting provider
+2. Set up development environment and CI/CD pipeline
+3. Create project repository with code standards
+4. Design database schema and API contracts
+5. Procure API keys and set up sandbox environments
+
+**Development Kickoff (Week 5):**
+1. Begin Phase 2 backend development (Brandfetch integration)
+2. Set up weekly standups and sprint planning
+3. Establish monitoring and alerting infrastructure
+4. Create technical documentation and runbooks
+
+---
+
+## 10. Conclusion
+
+The technical feasibility assessment confirms that **Branded Fit is technically viable** using the Brandfetch + Printify + Shopify API stack. All three APIs are mature, well-documented, and capable of supporting the planned feature set.
+
+**Key Takeaways:**
+
+1. **APIs are Production-Ready:** Brandfetch, Printify, and Shopify all offer robust APIs with comprehensive documentation
+2. **Reasonable Costs:** Initial API costs of $158-358/month, scaling to $500-1,200/month at 1,000 merchants
+3. **Manageable Risks:** Rate limiting and logo coverage gaps have clear mitigation strategies
+4. **Realistic Timeline:** 16-week MVP timeline is aggressive but achievable with focused execution
+5. **Clear Path to Scale:** Architecture supports horizontal scaling to 10,000+ merchants
+
+**Final Recommendation: Proceed with MVP development.**
+
+The primary risk is Brandfetch logo coverage for small businesses (estimated 10-20% miss rate). Mitigation through manual upload fallback and generated logos reduces this to an acceptable level. All other technical risks have viable mitigation strategies.
+
+**Estimated Investment:**
+- Development: 16 weeks (4 months)
+- Engineering Team: 2 full-time engineers
+- Operating Costs: $15-20k/month (MVP phase)
+- Path to Profitability: 200-300 paying merchants
+
+With strong product-market fit and effective customer acquisition, Branded Fit can achieve break-even within 6-12 months post-launch.
+
+---
+
+## Appendix: Sources & References
+
+### Brandfetch API
+- [Rate limits - Brandfetch](https://docs.brandfetch.com/logo-api/rate-limits)
+- [Pricing - Brandfetch for Developers](https://brandfetch.com/developers/pricing)
+- [Brand API & Logo API - Brand data for personalization](https://brandfetch.com/developers)
+- [The ultimate Logo API](https://brandfetch.com/developers/logo-api)
+- [Migrating from Clearbit to Brandfetch Logo API](https://docs.brandfetch.com/migrations/migrate-from-clearbit-logo-api)
+- [The best Clearbit Logo API alternative](https://brandfetch.com/developers/compare/clearbit-alternative)
+
+### Clearbit API
+- [Clearbit Pricing 2026: Full Cost Breakdown Explained](https://www.cognism.com/blog/clearbit-pricing)
+- [Clearbit API Documentation For Developers](https://clearbit.com/docs)
+- [A guide to Clearbit pricing, plans, costs & ROI in 2026](https://www.enginy.ai/blog/clearbit-pricing)
+- [Clearbit Pricing: Is There a Better Option in 2026?](https://www.warmly.ai/p/blog/clearbit-pricing)
+
+### Printify API
 - [Printify API Reference](https://developers.printify.com/)
-- [Shopify API Documentation](https://shopify.dev/docs/api)
-- [Shopify OAuth Guide](https://shopify.dev/docs/apps/build/authentication-authorization)
+- [Custom Printify API - Free Request Here](https://printify.com/printify-api/)
+- [Printify API – Printify Help Center](https://help.printify.com/hc/en-us/sections/4471760080657-Printify-API)
+- [How To Create POD Products via the Printify API](https://bulk-pod-product-creator.com/blog/how-to-create-POD-products-via-the-printify-API/)
+- [How To Use Printify's API To Automate POD Product Creation](https://bulk-pod-product-creator.com/blog/how-to-use-the-printify-API-to-automate-POD-product-creation/)
 
-### Community Resources
-- Shopify Developer Community
-- Printify API Support Portal
-- Stack Overflow tags: shopify-api, printify
-- GitHub: @shopify/shopify-api-node
+### Shopify API
+- [Shopify API limits](https://shopify.dev/docs/api/usage/limits)
+- [REST Admin API rate limits](https://shopify.dev/docs/api/admin-rest/usage/rate-limits)
+- [Product - GraphQL Admin](https://shopify.dev/docs/api/admin-graphql/latest/objects/Product)
+- [productCreate - GraphQL Admin](https://shopify.dev/docs/api/admin-graphql/latest/mutations/productcreate)
+- [Shopify Dev Docs](https://shopify.dev/docs)
+- [A Developer's Guide to Managing Rate Limits for Shopify's API and GraphQL](https://www.lunar.dev/post/a-developers-guide-managing-rate-limits-for-the-shopify-api-and-graphql)
 
-### Monitoring & Status Pages
-- [Brandfetch Status](https://status.brandfetch.io/)
-- [Printify Status](https://status.printify.com/)
-- [Shopify Status](https://www.shopifystatus.com/)
+### Infrastructure & Costs
+- [The True Shopify App Development Cost: 2026 Executive Guide](https://www.coders.dev/blog/shopify-app-development-cost.html)
+- [How Much Does Shopify Cost in 2026? Pricing Plans](https://www.rigbyjs.com/blog/shopify-cost)
+- [Shopify App Builder Pricing: What It Actually Costs in 2026](https://www.mobiloud.com/blog/shopify-app-builder-pricing)
 
 ---
 
 **Document Version:** 1.0
 **Last Updated:** February 12, 2026
-**Next Review:** March 12, 2026
-**Author:** Technical Lead, Branded Fit
-
----
-
-## Sources
-
-1. [Brand API & Logo API - Brand data for personalization](https://brandfetch.com/developers)
-2. [Overview - Brandfetch](https://docs.brandfetch.com/logo-api/overview)
-3. [Pricing - Brandfetch for Developers](https://brandfetch.com/developers/pricing)
-4. [Brandfetch API Documentation](https://apitracker.io/a/brandfetch-io)
-5. [Clearbit Logo API Will Be Sunset on December 1, 2025](https://clearbit.com/changelog/2025-06-10)
-6. [Clearbit API Documentation For Developers](https://clearbit.com/docs)
-7. [Printify API Reference](https://developers.printify.com/)
-8. [Custom Printify API](https://printify.com/printify-api/)
-9. [Printify API Help Center](https://help.printify.com/hc/en-us/sections/4471760080657-Printify-API)
-10. [REST Admin API reference](https://shopify.dev/docs/api/admin-rest)
-11. [Shopify API Integration Guide 2026](https://bsscommerce.com/shopify/shopify-api-integration/)
-12. [Shopify Product API Guide](https://bsscommerce.com/shopify/shopify-product-api/)
-13. [Shopify API, libraries, and tools](https://shopify.dev/docs/api)
-14. [Brand API - Brandfetch](https://docs.brandfetch.com/docs/brand-api)
-15. [Shopify Authentication and authorization](https://shopify.dev/docs/apps/build/authentication-authorization)
-16. [Shopify OAuth Guide 2026](https://ezapps.io/blogs/shopify-oauth-access-tokens-guide)
-17. [Printify Shopify Integration App](https://apps.shopify.com/printify)
-18. [How to Connect Printify to Shopify Guide 2026](https://litcommerce.com/blog/how-to-connect-printify-to-shopify/)
+**Next Review:** March 12, 2026 (post-API validation testing)

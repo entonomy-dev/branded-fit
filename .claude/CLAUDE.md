@@ -6,7 +6,21 @@
 - **Branch:** main
 
 This workspace is cloned from the company repository.
-All code and deliverables MUST be committed and pushed:
-```
-git add -A && git commit -m 'description' && git push origin main
-```
+
+## Deliverables & Documents
+
+All research, reports, plans, and documents MUST be saved in the
+`docs/` directory with a date prefix (YYYY-MM-DD) for future reference:
+
+  docs/2026-02-12_market_research.md
+  docs/2026-02-12_technical_feasibility.md
+  docs/2026-02-12_competitor_analysis.md
+
+Always include the date prefix so future agents know when the document
+was created.
+
+**Commit and push all deliverables to the GitHub repository.**
+Use `git add docs/ && git commit -m 'Add <description>' && git push`
+after creating or updating documents.
+
+Files are also synced to S3 automatically after execution.
